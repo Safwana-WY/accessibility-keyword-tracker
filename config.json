@@ -1,8 +1,47 @@
 {
-  "plugin_slug": "accessibility-plus",
-  "competitors": [
-    "accessibility-checker",
-    "wp-accessibility"
+  "plugins": [
+    {
+      "slug": "accessibility-plus",
+      "name": "Accessibility Plus",
+      "competitors": [
+        {"slug": "accessibility-checker", "name": "Accessibility Checker"},
+        {"slug": "wp-accessibility",      "name": "WP Accessibility"}
+      ],
+      "keywords": [
+        "accessibility plugin",
+        "wordpress accessibility",
+        "web accessibility",
+        "accessibility checker",
+        "accessibility tool",
+        "wcag plugin",
+        "wcag compliance",
+        "wcag 2.2",
+        "ada compliance",
+        "ada plugin",
+        "section 508",
+        "EAA compliance",
+        "European Accessibility Act",
+        "EN 301 549",
+        "AODA",
+        "accessibility statement generator",
+        "accessibility statement",
+        "accessibility scan",
+        "accessibility audit",
+        "accessibility remediation",
+        "accessibility issues wordpress",
+        "color contrast plugin",
+        "alt text plugin",
+        "screen reader plugin",
+        "keyboard navigation plugin",
+        "skip links",
+        "focus indicator",
+        "accessibility toolbar",
+        "a11y",
+        "wp accessibility",
+        "ARIA plugin",
+        "accessible wordpress"
+      ]
+    }
   ],
   "results_per_page": 100,
   "request_delay_seconds": 1.5,

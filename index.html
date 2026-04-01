@@ -3,77 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Accessibility Plus – Keyword Tracker</title>
+  <title>WP Keyword Tracker</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f1f5f9; color: #1e293b; font-size: 14px;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9; color: #1e293b; font-size: 14px; }
 
-    /* ── Header ─────────────────────────────────────────────── */
-    .header {
-      background: linear-gradient(135deg, #1d4ed8, #2563eb);
-      color: #fff; padding: 20px 32px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -.02em; }
+    /* ── Header ── */
+    .header { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff;
+               padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em; }
     .header p  { font-size: 0.78rem; opacity: .72; margin-top: 3px; }
     .header .updated { font-size: 0.72rem; opacity: .6; text-align: right; }
 
-    /* ── Layout ─────────────────────────────────────────────── */
-    .container { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
-    .section-title {
-      font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .07em; color: #94a3b8; margin: 28px 0 12px;
-    }
+    /* ── Tabs ── */
+    .tab-bar { background: #1e40af; padding: 0 32px; display: flex; gap: 2px; }
+    .tab { background: transparent; border: none; color: rgba(255,255,255,.65);
+             padding: 12px 20px; font-size: .85rem; font-weight: 500; cursor: pointer;
+             border-bottom: 3px solid transparent; transition: all .15s; }
+    .tab:hover  { color: #fff; }
+    .tab.active { color: #fff; border-bottom-color: #fff; background: rgba(255,255,255,.1); }
 
-    /* ── Stat cards ─────────────────────────────────────────── */
+    /* ── Layout ── */
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .section-title { font-size: .78rem; font-weight: 700; text-transform: uppercase;
+                       letter-spacing: .07em; color: #94a3b8; margin: 28px 0 12px; }
+
+    /* ── Stat cards ── */
     .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 28px; }
-    .card {
-      background: #fff; border-radius: 10px; padding: 18px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.08);
-    }
-    .card .value { font-size: 2rem; font-weight: 800; color: #2563eb; line-height: 1; }
-    .card .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-top: 5px; }
+    .card { background: #fff; border-radius: 10px; padding: 18px 20px;
+              box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .card .value { font-size: 1.75rem; font-weight: 800; color: #2563eb; line-height: 1; }
+    .card .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+                    color: #94a3b8; margin-top: 5px; }
     .card.c-green .value { color: #16a34a; }
     .card.c-red   .value { color: #dc2626; }
-    .card.c-purple .value { color: #7c3aed; }
+    .card.c-blue  .value { color: #0891b2; }
+    .inst-val { font-size: 1.75rem; font-weight: 800; color: #0891b2; }
 
-    /* ── Table wrapper ──────────────────────────────────────── */
-    .table-wrap {
-      background: #fff; border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-x: auto;
-    }
-    .table-title {
-      padding: 13px 18px; font-size: 0.82rem; font-weight: 600;
-      color: #475569; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .table-title .legend {
-      display: flex; gap: 16px; font-weight: 400; font-size: 0.75rem; color: #64748b;
-    }
-    .legend-dot {
-      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px;
-    }
+    /* ── Table wrapper ── */
+    .table-wrap { background: #fff; border-radius: 10px;
+                   box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-x: auto; }
+    .table-title { padding: 13px 18px; font-size: .82rem; font-weight: 600; color: #475569;
+                    border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+                    display: flex; justify-content: space-between; align-items: center; }
+    .table-title .legend { display: flex; gap: 16px; font-weight: 400; font-size: .75rem; color: #64748b; }
+    .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
 
     table { width: 100%; border-collapse: collapse; }
-    th {
-      padding: 9px 13px; text-align: left; font-size: 0.68rem;
-      text-transform: uppercase; letter-spacing: .06em;
-      color: #94a3b8; background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0; white-space: nowrap;
-    }
+    th { padding: 9px 13px; text-align: left; font-size: .68rem; text-transform: uppercase;
+           letter-spacing: .06em; color: #94a3b8; background: #f8fafc;
+           border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
     td { padding: 9px 13px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(0,0,0,.015); }
+    tr:hover td { background: rgba(0,0,0,.012); }
 
-    .kw-cell   { font-weight: 500; min-width: 210px; }
+    .kw-cell   { font-weight: 500; min-width: 200px; }
     .pos-cell  { font-size: .95rem; font-weight: 700; min-width: 90px; }
     .trend-cell { min-width: 150px; }
-
     .pos-num  { color: #1e293b; }
-    .pos-none { font-size: 0.75rem; color: #cbd5e1; font-weight: 400; }
+    .pos-none { font-size: .75rem; color: #cbd5e1; font-weight: 400; }
 
     .trend-up     { color: #16a34a; font-weight: 600; }
     .trend-down   { color: #dc2626; font-weight: 600; }
@@ -82,32 +73,28 @@
     .trend-none   { color: #cbd5e1; }
     small         { font-weight: 400; opacity: .72; }
 
-    /* ── Row highlights ─────────────────────────────────────── */
     .row-down td { background: #fff5f5; }
     .row-up   td { background: #f0fdf4; }
     .row-new  td { background: #faf5ff; }
     .row-none    { opacity: .6; }
 
-    /* ── Competitor cells ───────────────────────────────────── */
-    .comp-cell { text-align: center; min-width: 130px; font-size: 0.82rem; }
-    .comp-none { color: #cbd5e1; }
-    .comp-win  { color: #15803d; background: #f0fdf4; }
-    .comp-lose { color: #b91c1c; background: #fff5f5; }
-    .comp-tie  { color: #6b7280; }
+    .comp-cell  { text-align: center; min-width: 120px; font-size: .82rem; }
+    .comp-none  { color: #cbd5e1; }
+    .comp-win   { color: #15803d; background: #f0fdf4; }
+    .comp-lose  { color: #b91c1c; background: #fff5f5; }
+    .comp-tie   { color: #6b7280; }
 
-    .badge-win  { font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }
-    .badge-lose { font-size: 0.65rem; background: #fee2e2; color: #b91c1c; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }
-    .badge-tie  { font-size: 0.65rem; background: #f3f4f6; color: #6b7280; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }
+    .badge-win  { font-size: .65rem; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }
+    .badge-lose { font-size: .65rem; background: #fee2e2; color: #b91c1c; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }
+    .badge-tie  { font-size: .65rem; background: #f3f4f6; color: #6b7280; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }
 
-    /* ── Badge pills ────────────────────────────────────────── */
-    .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
-    .badge-green  { background: #dcfce7; color: #15803d; }
-    .badge-red    { background: #fee2e2; color: #b91c1c; }
-    .badge-gray   { background: #f3f4f6; color: #6b7280; }
+    .badge       { font-size: .7rem; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-red   { background: #fee2e2; color: #b91c1c; }
+    .badge-gray  { background: #f3f4f6; color: #6b7280; }
 
-    /* ── History cells ──────────────────────────────────────── */
     .hist-header { text-align: center; }
-    .hist-cell   { text-align: center; color: #64748b; font-size: 0.75rem; min-width: 52px; }
+    .hist-cell   { text-align: center; color: #64748b; font-size: .75rem; min-width: 52px; }
     .hist-top10  { color: #16a34a; font-weight: 700; }
     .hist-top30  { color: #2563eb; font-weight: 600; }
     .hist-none   { color: #e2e8f0; }
@@ -115,6 +102,7 @@
     @media (max-width: 900px) {
       .stats { grid-template-columns: repeat(3, 1fr); }
       .container { padding: 16px; }
+      .tab-bar { padding: 0 16px; }
     }
   </style>
 </head>
@@ -122,320 +110,321 @@
 
 <header class="header">
   <div>
-    <h1>Accessibility Plus — Keyword Position Tracker</h1>
-    <p>WordPress.org Plugin Directory · 32 keywords · vs 2 competitor(s)</p>
+    <h1>WordPress Plugin Keyword Tracker</h1>
+    <p>1 plugin(s) tracked · WordPress.org Plugin Directory</p>
   </div>
-  <div class="updated">Last updated<br>2026-04-01 04:29 UTC</div>
+  <div class="updated">Last updated<br>2026-04-01 05:40 UTC</div>
 </header>
 
+<nav class="tab-bar">
+  <button class="tab active" onclick="showTab(0, this)">Accessibility Plus</button>
+</nav>
+
 <div class="container">
+  
+        <div id="tab-0" class="tab-content active">
 
-  <!-- ── Stats ── -->
-  <div class="stats">
-    <div class="card">
-      <div class="value">29/32</div>
-      <div class="label">Ranking</div>
-    </div>
-    <div class="card c-green">
-      <div class="value">17</div>
-      <div class="label">In Top 10</div>
-    </div>
-    <div class="card">
-      <div class="value">27</div>
-      <div class="label">In Top 30</div>
-    </div>
-    <div class="card c-red">
-      <div class="value">3</div>
-      <div class="label">Not Ranking</div>
-    </div>
-    <div class="card c-green">
-      <div class="value">2</div>
-      <div class="label">Beating Competitors</div>
-    </div>
-    <div class="card c-red">
-      <div class="value">23</div>
-      <div class="label">Behind Competitors</div>
-    </div>
-  </div>
+          <!-- Stats -->
+          <div class="stats">
+            <div class="card c-blue">
+              <div class="value">1K+</div>
+              <div class="label">Active Installs</div>
+              <div style="margin-top:4px;min-height:16px"></div>
+            </div>
+            <div class="card">
+              <div class="value">29/32</div>
+              <div class="label">Ranking</div>
+            </div>
+            <div class="card c-green">
+              <div class="value">17</div>
+              <div class="label">In Top 10</div>
+            </div>
+            <div class="card">
+              <div class="value">27</div>
+              <div class="label">In Top 30</div>
+            </div>
+            <div class="card c-green">
+              <div class="value">2</div>
+              <div class="label">Beating Competitors</div>
+            </div>
+            <div class="card c-red">
+              <div class="value">23</div>
+              <div class="label">Behind Competitors</div>
+            </div>
+          </div>
 
-  <!-- ── Competitor Comparison ── -->
-  <div class="section-title">Competitor Comparison</div>
-  <div class="table-wrap" style="margin-bottom: 28px;">
-    <div class="table-title">
-      <span>Head-to-head: Your Position vs Competitors (per keyword)</span>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:#16a34a"></span>Winning (your # is lower)</span>
-        <span><span class="legend-dot" style="background:#dc2626"></span>Behind</span>
-        <span><span class="legend-dot" style="background:#9ca3af"></span>Tied / No data</span>
-      </div>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Keyword</th>
-          <th>Your Position</th>
-          <th>Accessibility Checker</th><th>WP Accessibility</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td class="kw-cell">section 508</td><td class="pos-cell"><span class="pos-num">#2</span></td><td class="comp-cell comp-lose">#1</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">EAA compliance</td><td class="pos-cell"><span class="pos-num">#2</span></td><td class="comp-cell comp-lose">#1</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility statement generator</td><td class="pos-cell"><span class="pos-num">#4</span></td><td class="comp-cell comp-lose">#3</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">focus indicator</td><td class="pos-cell"><span class="pos-num">#4</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-win">#25</td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">ada plugin</td><td class="pos-cell"><span class="pos-num">#5</span></td><td class="comp-cell comp-lose">#2</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility tool</td><td class="pos-cell"><span class="pos-num">#6</span></td><td class="comp-cell comp-win">#10</td><td class="comp-cell comp-lose">#4</td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">accessibility toolbar</td><td class="pos-cell"><span class="pos-num">#6</span></td><td class="comp-cell comp-win">#7</td><td class="comp-cell comp-lose">#3</td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">accessibility checker</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-lose">#1</td><td class="comp-cell comp-lose">#5</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">European Accessibility Act</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-lose">#4</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility remediation</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-lose">#4</td><td class="comp-cell comp-lose">#5</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">color contrast plugin</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-win">#12</td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">accessibility plugin</td><td class="pos-cell"><span class="pos-num">#8</span></td><td class="comp-cell comp-win">#15</td><td class="comp-cell comp-lose">#7</td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">wcag plugin</td><td class="pos-cell"><span class="pos-num">#8</span></td><td class="comp-cell comp-lose">#1</td><td class="comp-cell comp-win">#22</td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">a11y</td><td class="pos-cell"><span class="pos-num">#8</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose">#4</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">wcag compliance</td><td class="pos-cell"><span class="pos-num">#9</span></td><td class="comp-cell comp-lose">#1</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">ada compliance</td><td class="pos-cell"><span class="pos-num">#9</span></td><td class="comp-cell comp-lose">#3</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">EN 301 549</td><td class="pos-cell"><span class="pos-num">#10</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">accessibility statement</td><td class="pos-cell"><span class="pos-num">#11</span></td><td class="comp-cell comp-lose">#3</td><td class="comp-cell comp-lose">#9</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility audit</td><td class="pos-cell"><span class="pos-num">#11</span></td><td class="comp-cell comp-lose">#7</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">ARIA plugin</td><td class="pos-cell"><span class="pos-num">#15</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">accessibility scan</td><td class="pos-cell"><span class="pos-num">#17</span></td><td class="comp-cell comp-lose">#8</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">web accessibility</td><td class="pos-cell"><span class="pos-num">#18</span></td><td class="comp-cell comp-lose">#11</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">wp accessibility</td><td class="pos-cell"><span class="pos-num">#20</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose">#3</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">wordpress accessibility</td><td class="pos-cell"><span class="pos-num">#23</span></td><td class="comp-cell comp-lose">#9</td><td class="comp-cell comp-lose">#8</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">keyboard navigation plugin</td><td class="pos-cell"><span class="pos-num">#24</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">screen reader plugin</td><td class="pos-cell"><span class="pos-num">#25</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">accessibility issues wordpress</td><td class="pos-cell"><span class="pos-num">#28</span></td><td class="comp-cell comp-lose">#12</td><td class="comp-cell comp-lose">#7</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">skip links</td><td class="pos-cell"><span class="pos-num">#77</span></td><td class="comp-cell comp-lose">#11</td><td class="comp-cell comp-lose">#7</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">alt text plugin</td><td class="pos-cell"><span class="pos-num">#84</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose">#36</td><td><span class="badge badge-red">Behind</span></td></tr>
-      </tbody>
-    </table>
-  </div>
+          <!-- Competitor Comparison -->
+          <div class="section-title">Competitor Comparison</div>
+          <div class="table-wrap" style="margin-bottom:28px">
+            <div class="table-title">
+              <span>Head-to-head position and active installs per keyword</span>
+              <div class="legend">
+                <span><span class="legend-dot" style="background:#16a34a"></span>Winning</span>
+                <span><span class="legend-dot" style="background:#dc2626"></span>Behind</span>
+              </div>
+            </div>
+            <table>
+              <thead><tr>
+                <th>Keyword</th><th>Your Position</th><th>Accessibility Checker</th><th>WP Accessibility</th><th>Status</th>
+              </tr></thead>
+              <tbody><tr style="background:#f0f9ff"><td class="kw-cell" style="font-weight:700">Active Installs</td><td class="pos-cell"><span class="inst-val">1K+</span><br></td><td class="comp-cell comp-lose" style="font-weight:600">10K+</td><td class="comp-cell comp-lose" style="font-weight:600">60K+</td><td></td></tr><tr><td class="kw-cell">section 508</td><td class="pos-cell"><span class="pos-num">#2</span></td><td class="comp-cell comp-lose">#1 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">EAA compliance</td><td class="pos-cell"><span class="pos-num">#2</span></td><td class="comp-cell comp-lose">#1 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility statement generator</td><td class="pos-cell"><span class="pos-num">#4</span></td><td class="comp-cell comp-lose">#3 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">focus indicator</td><td class="pos-cell"><span class="pos-num">#4</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-win">#25 <span class="badge-win">▲21</span></td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">ada plugin</td><td class="pos-cell"><span class="pos-num">#5</span></td><td class="comp-cell comp-lose">#2 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility tool</td><td class="pos-cell"><span class="pos-num">#6</span></td><td class="comp-cell comp-win">#10 <span class="badge-win">▲4</span></td><td class="comp-cell comp-lose">#4 <span class="badge-lose">▼2</span></td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">accessibility toolbar</td><td class="pos-cell"><span class="pos-num">#6</span></td><td class="comp-cell comp-win">#7 <span class="badge-win">▲1</span></td><td class="comp-cell comp-lose">#3 <span class="badge-lose">▼3</span></td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">accessibility checker</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-lose">#1 <span class="badge-lose">▼6</span></td><td class="comp-cell comp-lose">#5 <span class="badge-lose">▼2</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">European Accessibility Act</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-lose">#4 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility remediation</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-lose">#4 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-lose">#5 <span class="badge-lose">▼2</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">color contrast plugin</td><td class="pos-cell"><span class="pos-num">#7</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-win">#12 <span class="badge-win">▲5</span></td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">accessibility plugin</td><td class="pos-cell"><span class="pos-num">#8</span></td><td class="comp-cell comp-win">#15 <span class="badge-win">▲7</span></td><td class="comp-cell comp-lose">#7 <span class="badge-lose">▼1</span></td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">wcag plugin</td><td class="pos-cell"><span class="pos-num">#8</span></td><td class="comp-cell comp-lose">#1 <span class="badge-lose">▼7</span></td><td class="comp-cell comp-win">#22 <span class="badge-win">▲14</span></td><td><span class="badge badge-green">Winning</span></td></tr><tr><td class="kw-cell">a11y</td><td class="pos-cell"><span class="pos-num">#8</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose">#4 <span class="badge-lose">▼4</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">wcag compliance</td><td class="pos-cell"><span class="pos-num">#9</span></td><td class="comp-cell comp-lose">#1 <span class="badge-lose">▼8</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">ada compliance</td><td class="pos-cell"><span class="pos-num">#9</span></td><td class="comp-cell comp-lose">#3 <span class="badge-lose">▼6</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">EN 301 549</td><td class="pos-cell"><span class="pos-num">#10</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">accessibility statement</td><td class="pos-cell"><span class="pos-num">#11</span></td><td class="comp-cell comp-lose">#3 <span class="badge-lose">▼8</span></td><td class="comp-cell comp-lose">#9 <span class="badge-lose">▼2</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">accessibility audit</td><td class="pos-cell"><span class="pos-num">#11</span></td><td class="comp-cell comp-lose">#7 <span class="badge-lose">▼4</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">ARIA plugin</td><td class="pos-cell"><span class="pos-num">#15</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">accessibility scan</td><td class="pos-cell"><span class="pos-num">#17</span></td><td class="comp-cell comp-lose">#8 <span class="badge-lose">▼9</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">web accessibility</td><td class="pos-cell"><span class="pos-num">#18</span></td><td class="comp-cell comp-lose">#11 <span class="badge-lose">▼7</span></td><td class="comp-cell comp-none">—</td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">wp accessibility</td><td class="pos-cell"><span class="pos-num">#20</span></td><td class="comp-cell comp-lose">#5 <span class="badge-lose">▼15</span></td><td class="comp-cell comp-lose">#3 <span class="badge-lose">▼17</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">wordpress accessibility</td><td class="pos-cell"><span class="pos-num">#23</span></td><td class="comp-cell comp-lose">#9 <span class="badge-lose">▼14</span></td><td class="comp-cell comp-lose">#8 <span class="badge-lose">▼15</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">keyboard navigation plugin</td><td class="pos-cell"><span class="pos-num">#24</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">screen reader plugin</td><td class="pos-cell"><span class="pos-num">#25</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td><td><span class="badge badge-gray">Neutral</span></td></tr><tr><td class="kw-cell">accessibility issues wordpress</td><td class="pos-cell"><span class="pos-num">#28</span></td><td class="comp-cell comp-lose">#12 <span class="badge-lose">▼16</span></td><td class="comp-cell comp-lose">#7 <span class="badge-lose">▼21</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">skip links</td><td class="pos-cell"><span class="pos-num">#77</span></td><td class="comp-cell comp-lose">#11 <span class="badge-lose">▼66</span></td><td class="comp-cell comp-lose">#7 <span class="badge-lose">▼70</span></td><td><span class="badge badge-red">Behind</span></td></tr><tr><td class="kw-cell">alt text plugin</td><td class="pos-cell"><span class="pos-num">#84</span></td><td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose">#36 <span class="badge-lose">▼48</span></td><td><span class="badge badge-red">Behind</span></td></tr></tbody>
+            </table>
+          </div>
 
-  <!-- ── Full Keyword Table ── -->
-  <div class="section-title">All Keywords — Position History</div>
-  <div class="table-wrap">
-    <div class="table-title">
-      <span>Daily positions · sorted by current rank</span>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:#16a34a"></span>Improved</span>
-        <span><span class="legend-dot" style="background:#dc2626"></span>Declined</span>
-        <span><span class="legend-dot" style="background:#7c3aed"></span>New entry</span>
-        <span><span class="legend-dot" style="background:#e2e8f0;border:1px solid #d1d5db"></span>Not top 100</span>
-      </div>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Keyword</th>
-          <th>Your Position</th>
-          <th>Accessibility Checker</th><th>WP Accessibility</th>
-          <th>Change vs Yesterday</th>
-          <th class="hist-header">04-01</th>
-        </tr>
-      </thead>
-      <tbody>
-        
-        <tr class="row-new">
-          <td class="kw-cell">section 508</td>
-          <td class="pos-cell"><span class="pos-num">#2</span></td>
-          <td class="comp-cell comp-lose" title="You're #2, they're #1">#1 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#2</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">EAA compliance</td>
-          <td class="pos-cell"><span class="pos-num">#2</span></td>
-          <td class="comp-cell comp-lose" title="You're #2, they're #1">#1 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#2</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility statement generator</td>
-          <td class="pos-cell"><span class="pos-num">#4</span></td>
-          <td class="comp-cell comp-lose" title="You're #4, they're #3">#3 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#4</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">focus indicator</td>
-          <td class="pos-cell"><span class="pos-num">#4</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-win" title="You're #4, they're #25">#25 <span class="badge-win">▲21</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#4</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">ada plugin</td>
-          <td class="pos-cell"><span class="pos-num">#5</span></td>
-          <td class="comp-cell comp-lose" title="You're #5, they're #2">#2 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#5</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility tool</td>
-          <td class="pos-cell"><span class="pos-num">#6</span></td>
-          <td class="comp-cell comp-win" title="You're #6, they're #10">#10 <span class="badge-win">▲4</span></td><td class="comp-cell comp-lose" title="You're #6, they're #4">#4 <span class="badge-lose">▼2</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#6</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility toolbar</td>
-          <td class="pos-cell"><span class="pos-num">#6</span></td>
-          <td class="comp-cell comp-win" title="You're #6, they're #7">#7 <span class="badge-win">▲1</span></td><td class="comp-cell comp-lose" title="You're #6, they're #3">#3 <span class="badge-lose">▼3</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#6</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility checker</td>
-          <td class="pos-cell"><span class="pos-num">#7</span></td>
-          <td class="comp-cell comp-lose" title="You're #7, they're #1">#1 <span class="badge-lose">▼6</span></td><td class="comp-cell comp-lose" title="You're #7, they're #5">#5 <span class="badge-lose">▼2</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#7</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">European Accessibility Act</td>
-          <td class="pos-cell"><span class="pos-num">#7</span></td>
-          <td class="comp-cell comp-lose" title="You're #7, they're #4">#4 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#7</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility remediation</td>
-          <td class="pos-cell"><span class="pos-num">#7</span></td>
-          <td class="comp-cell comp-lose" title="You're #7, they're #4">#4 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-lose" title="You're #7, they're #5">#5 <span class="badge-lose">▼2</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#7</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">color contrast plugin</td>
-          <td class="pos-cell"><span class="pos-num">#7</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-win" title="You're #7, they're #12">#12 <span class="badge-win">▲5</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#7</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility plugin</td>
-          <td class="pos-cell"><span class="pos-num">#8</span></td>
-          <td class="comp-cell comp-win" title="You're #8, they're #15">#15 <span class="badge-win">▲7</span></td><td class="comp-cell comp-lose" title="You're #8, they're #7">#7 <span class="badge-lose">▼1</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#8</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">wcag plugin</td>
-          <td class="pos-cell"><span class="pos-num">#8</span></td>
-          <td class="comp-cell comp-lose" title="You're #8, they're #1">#1 <span class="badge-lose">▼7</span></td><td class="comp-cell comp-win" title="You're #8, they're #22">#22 <span class="badge-win">▲14</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#8</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">a11y</td>
-          <td class="pos-cell"><span class="pos-num">#8</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose" title="You're #8, they're #4">#4 <span class="badge-lose">▼4</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#8</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">wcag compliance</td>
-          <td class="pos-cell"><span class="pos-num">#9</span></td>
-          <td class="comp-cell comp-lose" title="You're #9, they're #1">#1 <span class="badge-lose">▼8</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#9</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">ada compliance</td>
-          <td class="pos-cell"><span class="pos-num">#9</span></td>
-          <td class="comp-cell comp-lose" title="You're #9, they're #3">#3 <span class="badge-lose">▼6</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#9</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">EN 301 549</td>
-          <td class="pos-cell"><span class="pos-num">#10</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top10">#10</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility statement</td>
-          <td class="pos-cell"><span class="pos-num">#11</span></td>
-          <td class="comp-cell comp-lose" title="You're #11, they're #3">#3 <span class="badge-lose">▼8</span></td><td class="comp-cell comp-lose" title="You're #11, they're #9">#9 <span class="badge-lose">▼2</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#11</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility audit</td>
-          <td class="pos-cell"><span class="pos-num">#11</span></td>
-          <td class="comp-cell comp-lose" title="You're #11, they're #7">#7 <span class="badge-lose">▼4</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#11</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">ARIA plugin</td>
-          <td class="pos-cell"><span class="pos-num">#15</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#15</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility scan</td>
-          <td class="pos-cell"><span class="pos-num">#17</span></td>
-          <td class="comp-cell comp-lose" title="You're #17, they're #8">#8 <span class="badge-lose">▼9</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#17</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">web accessibility</td>
-          <td class="pos-cell"><span class="pos-num">#18</span></td>
-          <td class="comp-cell comp-lose" title="You're #18, they're #11">#11 <span class="badge-lose">▼7</span></td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#18</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">wp accessibility</td>
-          <td class="pos-cell"><span class="pos-num">#20</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose" title="You're #20, they're #3">#3 <span class="badge-lose">▼17</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#20</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">wordpress accessibility</td>
-          <td class="pos-cell"><span class="pos-num">#23</span></td>
-          <td class="comp-cell comp-lose" title="You're #23, they're #9">#9 <span class="badge-lose">▼14</span></td><td class="comp-cell comp-lose" title="You're #23, they're #8">#8 <span class="badge-lose">▼15</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#23</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">keyboard navigation plugin</td>
-          <td class="pos-cell"><span class="pos-num">#24</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#24</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">screen reader plugin</td>
-          <td class="pos-cell"><span class="pos-num">#25</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#25</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">accessibility issues wordpress</td>
-          <td class="pos-cell"><span class="pos-num">#28</span></td>
-          <td class="comp-cell comp-lose" title="You're #28, they're #12">#12 <span class="badge-lose">▼16</span></td><td class="comp-cell comp-lose" title="You're #28, they're #7">#7 <span class="badge-lose">▼21</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell hist-top30">#28</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">skip links</td>
-          <td class="pos-cell"><span class="pos-num">#77</span></td>
-          <td class="comp-cell comp-lose" title="You're #77, they're #11">#11 <span class="badge-lose">▼66</span></td><td class="comp-cell comp-lose" title="You're #77, they're #7">#7 <span class="badge-lose">▼70</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell ">#77</td>
-        </tr>
-        <tr class="row-new">
-          <td class="kw-cell">alt text plugin</td>
-          <td class="pos-cell"><span class="pos-num">#84</span></td>
-          <td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose" title="You're #84, they're #36">#36 <span class="badge-lose">▼48</span></td>
-          <td class="trend-cell"><span class="trend-new">New</span></td>
-          <td class="hist-cell ">#84</td>
-        </tr>
-        <tr class="row-none">
-          <td class="kw-cell">wcag 2.2</td>
-          <td class="pos-cell"><span class="pos-none">Not in top 100</span></td>
-          <td class="comp-cell">#1</td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-none">—</span></td>
-          <td class="hist-cell hist-none">—</td>
-        </tr>
-        <tr class="row-none">
-          <td class="kw-cell">AODA</td>
-          <td class="pos-cell"><span class="pos-none">Not in top 100</span></td>
-          <td class="comp-cell">#3</td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-none">—</span></td>
-          <td class="hist-cell hist-none">—</td>
-        </tr>
-        <tr class="row-none">
-          <td class="kw-cell">accessible wordpress</td>
-          <td class="pos-cell"><span class="pos-none">Not in top 100</span></td>
-          <td class="comp-cell">#55</td><td class="comp-cell comp-none">—</td>
-          <td class="trend-cell"><span class="trend-none">—</span></td>
-          <td class="hist-cell hist-none">—</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+          <!-- Full keyword history -->
+          <div class="section-title">All Keywords — Position History</div>
+          <div class="table-wrap">
+            <div class="table-title">
+              <span>Daily positions · sorted by current rank</span>
+              <div class="legend">
+                <span><span class="legend-dot" style="background:#16a34a"></span>Improved</span>
+                <span><span class="legend-dot" style="background:#dc2626"></span>Declined</span>
+                <span><span class="legend-dot" style="background:#7c3aed"></span>New</span>
+              </div>
+            </div>
+            <table>
+              <thead><tr>
+                <th>Keyword</th><th>Your Position</th><th>Accessibility Checker</th><th>WP Accessibility</th>
+                <th>Change vs Yesterday</th><th class="hist-header">04-01</th>
+              </tr></thead>
+              <tbody>
+            <tr class="row-new">
+              <td class="kw-cell">section 508</td>
+              <td class="pos-cell"><span class="pos-num">#2</span></td>
+              <td class="comp-cell comp-lose">#1 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#2</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">EAA compliance</td>
+              <td class="pos-cell"><span class="pos-num">#2</span></td>
+              <td class="comp-cell comp-lose">#1 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#2</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility statement generator</td>
+              <td class="pos-cell"><span class="pos-num">#4</span></td>
+              <td class="comp-cell comp-lose">#3 <span class="badge-lose">▼1</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#4</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">focus indicator</td>
+              <td class="pos-cell"><span class="pos-num">#4</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-win">#25 <span class="badge-win">▲21</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#4</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">ada plugin</td>
+              <td class="pos-cell"><span class="pos-num">#5</span></td>
+              <td class="comp-cell comp-lose">#2 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#5</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility tool</td>
+              <td class="pos-cell"><span class="pos-num">#6</span></td>
+              <td class="comp-cell comp-win">#10 <span class="badge-win">▲4</span></td><td class="comp-cell comp-lose">#4 <span class="badge-lose">▼2</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#6</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility toolbar</td>
+              <td class="pos-cell"><span class="pos-num">#6</span></td>
+              <td class="comp-cell comp-win">#7 <span class="badge-win">▲1</span></td><td class="comp-cell comp-lose">#3 <span class="badge-lose">▼3</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#6</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility checker</td>
+              <td class="pos-cell"><span class="pos-num">#7</span></td>
+              <td class="comp-cell comp-lose">#1 <span class="badge-lose">▼6</span></td><td class="comp-cell comp-lose">#5 <span class="badge-lose">▼2</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#7</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">European Accessibility Act</td>
+              <td class="pos-cell"><span class="pos-num">#7</span></td>
+              <td class="comp-cell comp-lose">#4 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#7</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility remediation</td>
+              <td class="pos-cell"><span class="pos-num">#7</span></td>
+              <td class="comp-cell comp-lose">#4 <span class="badge-lose">▼3</span></td><td class="comp-cell comp-lose">#5 <span class="badge-lose">▼2</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#7</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">color contrast plugin</td>
+              <td class="pos-cell"><span class="pos-num">#7</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-win">#12 <span class="badge-win">▲5</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#7</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility plugin</td>
+              <td class="pos-cell"><span class="pos-num">#8</span></td>
+              <td class="comp-cell comp-win">#15 <span class="badge-win">▲7</span></td><td class="comp-cell comp-lose">#7 <span class="badge-lose">▼1</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#8</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">wcag plugin</td>
+              <td class="pos-cell"><span class="pos-num">#8</span></td>
+              <td class="comp-cell comp-lose">#1 <span class="badge-lose">▼7</span></td><td class="comp-cell comp-win">#22 <span class="badge-win">▲14</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#8</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">a11y</td>
+              <td class="pos-cell"><span class="pos-num">#8</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose">#4 <span class="badge-lose">▼4</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#8</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">wcag compliance</td>
+              <td class="pos-cell"><span class="pos-num">#9</span></td>
+              <td class="comp-cell comp-lose">#1 <span class="badge-lose">▼8</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#9</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">ada compliance</td>
+              <td class="pos-cell"><span class="pos-num">#9</span></td>
+              <td class="comp-cell comp-lose">#3 <span class="badge-lose">▼6</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#9</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">EN 301 549</td>
+              <td class="pos-cell"><span class="pos-num">#10</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top10">#10</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility statement</td>
+              <td class="pos-cell"><span class="pos-num">#11</span></td>
+              <td class="comp-cell comp-lose">#3 <span class="badge-lose">▼8</span></td><td class="comp-cell comp-lose">#9 <span class="badge-lose">▼2</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#11</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility audit</td>
+              <td class="pos-cell"><span class="pos-num">#11</span></td>
+              <td class="comp-cell comp-lose">#7 <span class="badge-lose">▼4</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#11</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">ARIA plugin</td>
+              <td class="pos-cell"><span class="pos-num">#15</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#15</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility scan</td>
+              <td class="pos-cell"><span class="pos-num">#17</span></td>
+              <td class="comp-cell comp-lose">#8 <span class="badge-lose">▼9</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#17</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">web accessibility</td>
+              <td class="pos-cell"><span class="pos-num">#18</span></td>
+              <td class="comp-cell comp-lose">#11 <span class="badge-lose">▼7</span></td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#18</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">wp accessibility</td>
+              <td class="pos-cell"><span class="pos-num">#20</span></td>
+              <td class="comp-cell comp-lose">#5 <span class="badge-lose">▼15</span></td><td class="comp-cell comp-lose">#3 <span class="badge-lose">▼17</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#20</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">wordpress accessibility</td>
+              <td class="pos-cell"><span class="pos-num">#23</span></td>
+              <td class="comp-cell comp-lose">#9 <span class="badge-lose">▼14</span></td><td class="comp-cell comp-lose">#8 <span class="badge-lose">▼15</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#23</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">keyboard navigation plugin</td>
+              <td class="pos-cell"><span class="pos-num">#24</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#24</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">screen reader plugin</td>
+              <td class="pos-cell"><span class="pos-num">#25</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#25</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">accessibility issues wordpress</td>
+              <td class="pos-cell"><span class="pos-num">#28</span></td>
+              <td class="comp-cell comp-lose">#12 <span class="badge-lose">▼16</span></td><td class="comp-cell comp-lose">#7 <span class="badge-lose">▼21</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell hist-top30">#28</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">skip links</td>
+              <td class="pos-cell"><span class="pos-num">#77</span></td>
+              <td class="comp-cell comp-lose">#11 <span class="badge-lose">▼66</span></td><td class="comp-cell comp-lose">#7 <span class="badge-lose">▼70</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell ">#77</td>
+            </tr>
+            <tr class="row-new">
+              <td class="kw-cell">alt text plugin</td>
+              <td class="pos-cell"><span class="pos-num">#84</span></td>
+              <td class="comp-cell comp-none">—</td><td class="comp-cell comp-lose">#36 <span class="badge-lose">▼48</span></td>
+              <td class="trend-cell"><span class="trend-new">New</span></td>
+              <td class="hist-cell ">#84</td>
+            </tr>
+            <tr class="row-none">
+              <td class="kw-cell">wcag 2.2</td>
+              <td class="pos-cell"><span class="pos-none">Not in top 100</span></td>
+              <td class="comp-cell">#1</td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-none">—</span></td>
+              <td class="hist-cell hist-none">—</td>
+            </tr>
+            <tr class="row-none">
+              <td class="kw-cell">AODA</td>
+              <td class="pos-cell"><span class="pos-none">Not in top 100</span></td>
+              <td class="comp-cell">#3</td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-none">—</span></td>
+              <td class="hist-cell hist-none">—</td>
+            </tr>
+            <tr class="row-none">
+              <td class="kw-cell">accessible wordpress</td>
+              <td class="pos-cell"><span class="pos-none">Not in top 100</span></td>
+              <td class="comp-cell">#55</td><td class="comp-cell comp-none">—</td>
+              <td class="trend-cell"><span class="trend-none">—</span></td>
+              <td class="hist-cell hist-none">—</td>
+            </tr></tbody>
+            </table>
+          </div>
 
-</div><!-- /container -->
+        </div>
+</div>
+
+<script>
+function showTab(idx, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + idx).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
 </body>
 </html>

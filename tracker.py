@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
 WordPress.org Keyword Position Tracker
-Tracks search ranking for accessibility-plus and competitors in the WP.org plugin directory.
+Tracks search rankings and active installs for multiple plugins and their competitors.
 
 Usage:
-  python tracker.py          # Full run: check positions, update dashboard, send Slack alert
+  python tracker.py          # Full run: fetch positions + installs, update dashboard, send Slack
   python tracker.py --dry    # Regenerate dashboard from existing data only (no API calls)
+
+To add a new plugin, add an entry to the "plugins" array in config.json.
+Keyword positions are stored in data/positions.json.
+Active installs use the _installs key alongside keyword positions.
 """
 
 import json
@@ -19,61 +23,13 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
-# KEYWORD LIST
-# ---------------------------------------------------------------------------
-KEYWORDS = [
-    # Broad category
-    "accessibility plugin",
-    "wordpress accessibility",
-    "web accessibility",
-    "accessibility checker",
-    "accessibility tool",
-    # Compliance standards
-    "wcag plugin",
-    "wcag compliance",
-    "wcag 2.2",
-    "ada compliance",
-    "ada plugin",
-    "section 508",
-    "EAA compliance",
-    "European Accessibility Act",
-    "EN 301 549",
-    "AODA",
-    # Feature-specific
-    "accessibility statement generator",
-    "accessibility statement",
-    "accessibility scan",
-    "accessibility audit",
-    "accessibility remediation",
-    "accessibility issues wordpress",
-    "color contrast plugin",
-    "alt text plugin",
-    "screen reader plugin",
-    "keyboard navigation plugin",
-    "skip links",
-    "focus indicator",
-    "accessibility toolbar",
-    # Technical / developer
-    "a11y",
-    "wp accessibility",
-    "ARIA plugin",
-    "accessible wordpress",
-]
-
-# ---------------------------------------------------------------------------
 # PATHS
 # ---------------------------------------------------------------------------
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-CONFIG_FILE   = os.path.join(BASE_DIR, "config.json")
-SECRETS_FILE  = os.path.join(BASE_DIR, "secrets.json")
-DATA_FILE   = os.path.join(BASE_DIR, "data", "positions.json")
+BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE    = os.path.join(BASE_DIR, "config.json")
+SECRETS_FILE   = os.path.join(BASE_DIR, "secrets.json")
+DATA_FILE      = os.path.join(BASE_DIR, "data", "positions.json")
 DASHBOARD_FILE = os.path.join(BASE_DIR, "index.html")
-
-SLUG_LABELS = {
-    "accessibility-plus":    "Accessibility Plus",
-    "accessibility-checker": "Accessibility Checker",
-    "wp-accessibility":      "WP Accessibility",
-}
 
 # ---------------------------------------------------------------------------
 # CONFIG / DATA HELPERS
@@ -82,7 +38,20 @@ SLUG_LABELS = {
 def load_config():
     with open(CONFIG_FILE) as f:
         config = json.load(f)
-    # Load secrets from secrets.json (gitignored) and merge in
+
+    # Migrate old flat format { plugin_slug, competitors } → new plugins array
+    if "plugin_slug" in config and "plugins" not in config:
+        config["plugins"] = [{
+            "slug":        config.pop("plugin_slug"),
+            "name":        "My Plugin",
+            "competitors": [
+                {"slug": s, "name": s}
+                for s in config.pop("competitors", [])
+            ],
+            "keywords": config.pop("keywords", []),
+        }]
+
+    # Merge secrets (gitignored)
     if os.path.exists(SECRETS_FILE):
         with open(SECRETS_FILE) as f:
             secrets = json.load(f)
@@ -90,6 +59,7 @@ def load_config():
             config.setdefault("slack", {})["webhook_url"] = secrets["slack_webhook_url"]
         if secrets.get("email_password"):
             config.setdefault("email", {})["password"] = secrets["email_password"]
+
     return config
 
 
@@ -106,21 +76,19 @@ def save_data(data):
         json.dump(data, f, indent=2)
 
 
-def migrate_data(data, plugin_slug):
-    """
-    Migrate old flat structure  { date: { keyword: pos } }
-    to new per-slug structure   { date: { slug: { keyword: pos } } }
-    """
-    migrated = False
-    for date, day_data in data.items():
-        # If any top-level value is int/None (not a dict), it's the old format
-        sample = next(iter(day_data.values()), None)
-        if not isinstance(sample, dict):
-            data[date] = {plugin_slug: day_data}
-            migrated = True
-    if migrated:
-        print("  [migrate] Old data structure converted to per-slug format.")
-    return data
+def keyword_positions(slug_data):
+    """Return only keyword→position entries, skipping internal _keys."""
+    return {k: v for k, v in slug_data.items() if not k.startswith("_")}
+
+
+def format_installs(n):
+    if not isinstance(n, int):
+        return "—"
+    if n >= 1_000_000:
+        return f"{n // 1_000_000}M+"
+    if n >= 1_000:
+        return f"{n // 1_000:,}K+"
+    return f"{n:,}+"
 
 
 # ---------------------------------------------------------------------------
@@ -128,29 +96,34 @@ def migrate_data(data, plugin_slug):
 # ---------------------------------------------------------------------------
 
 def check_position(keyword, slug, per_page=100, delay=1.5):
-    """
-    Return the 1-indexed position of slug in WP.org search for keyword.
-    Returns None if not found in top per_page results, 'error' on failure.
-    """
+    """Return 1-indexed position of slug in WP.org search results, or None/error."""
     url = "https://api.wordpress.org/plugins/info/1.2/"
-    params = {
-        "action":   "query_plugins",
-        "search":   keyword,
-        "per_page": per_page,
-        "page":     1,
-    }
+    params = {"action": "query_plugins", "search": keyword, "per_page": per_page, "page": 1}
     try:
         time.sleep(delay)
         resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
-        plugins = resp.json().get("plugins", [])
-        for i, plugin in enumerate(plugins):
+        for i, plugin in enumerate(resp.json().get("plugins", [])):
             if plugin.get("slug") == slug:
                 return i + 1
         return None
     except Exception as exc:
-        print(f"    [ERROR] '{keyword}' / '{slug}': {exc}")
+        print(f"    [ERROR] position '{keyword}' / '{slug}': {exc}")
         return "error"
+
+
+def fetch_installs(slug, delay=1.0):
+    """Return active_installs integer for slug from WP.org Plugin API."""
+    url = "https://api.wordpress.org/plugins/info/1.2/"
+    params = {"action": "plugin_information", "slug": slug, "fields[active_installs]": 1}
+    try:
+        time.sleep(delay)
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        return resp.json().get("active_installs")
+    except Exception as exc:
+        print(f"    [ERROR] installs '{slug}': {exc}")
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -158,305 +131,393 @@ def check_position(keyword, slug, per_page=100, delay=1.5):
 # ---------------------------------------------------------------------------
 
 def run_check(config):
-    plugin_slug = config["plugin_slug"]
-    competitors  = config.get("competitors", [])
-    all_slugs    = [plugin_slug] + competitors
-    per_page     = config.get("results_per_page", 100)
-    delay        = config.get("request_delay_seconds", 1.5)
+    data    = load_data()
+    today   = datetime.utcnow().strftime("%Y-%m-%d")
+    plugins = config["plugins"]
+    delay   = config.get("request_delay_seconds", 1.5)
+    per_pg  = config.get("results_per_page", 100)
 
-    data = load_data()
-    data = migrate_data(data, plugin_slug)
-
-    today = datetime.utcnow().strftime("%Y-%m-%d")
     if today not in data:
         data[today] = {}
-    for slug in all_slugs:
-        if slug not in data[today]:
-            data[today][slug] = {}
 
-    dates     = sorted(k for k in data.keys() if k != today)
-    yesterday = dates[-1] if dates else None
+    all_changes = {}  # { plugin_slug: [changes] }
 
-    changes = []  # position changes for plugin_slug only
+    for plugin_cfg in plugins:
+        p_slug      = plugin_cfg["slug"]
+        p_name      = plugin_cfg.get("name", p_slug)
+        keywords    = plugin_cfg.get("keywords", [])
+        competitors = plugin_cfg.get("competitors", [])
+        all_slugs   = [p_slug] + [c["slug"] for c in competitors]
 
-    print(f"\nChecking {len(KEYWORDS)} keywords × {len(all_slugs)} slugs...\n")
-    header = f"  {'KEYWORD':<40}" + "".join(f"  {s:<28}" for s in all_slugs)
-    print(header)
-    print("  " + "─" * (len(header) - 2))
-
-    for keyword in KEYWORDS:
-        row = f"  {keyword:<40}"
-
+        # Ensure today's entries exist
         for slug in all_slugs:
-            position = check_position(keyword, slug, per_page=per_page, delay=delay)
+            if slug not in data[today]:
+                data[today][slug] = {}
 
-            if position != "error":
-                data[today][slug][keyword] = position
+        # Find yesterday for change detection
+        dates_so_far = sorted(k for k in data if k != today)
+        yesterday    = dates_so_far[-1] if dates_so_far else None
 
-            pos_str = f"#{position}" if isinstance(position, int) else (str(position) if position else "—")
-            row += f"  {pos_str:<28}"
+        changes = []
 
-        print(row)
+        print(f"\n{'─'*70}")
+        print(f"  {p_name}  ({p_slug})")
+        print(f"  {len(keywords)} keywords × {len(all_slugs)} slugs")
+        print(f"{'─'*70}")
+        header = f"  {'KEYWORD':<40}" + "".join(f"  {s:<26}" for s in all_slugs)
+        print(header)
+        print("  " + "─" * (len(header) - 2))
 
-        # Detect changes in our plugin only
-        if yesterday:
-            prev    = data[yesterday].get(plugin_slug, {}).get(keyword)
-            current = data[today][plugin_slug].get(keyword)
-            if (
-                isinstance(prev, int)
-                and isinstance(current, int)
-                and prev != current
-            ):
-                changes.append({"keyword": keyword, "prev": prev, "current": current})
+        for keyword in keywords:
+            row = f"  {keyword:<40}"
+            for slug in all_slugs:
+                pos = check_position(keyword, slug, per_page=per_pg, delay=delay)
+                if pos != "error":
+                    data[today][slug][keyword] = pos
+                pos_str = f"#{pos}" if isinstance(pos, int) else (str(pos) if pos else "—")
+                row += f"  {pos_str:<26}"
+            print(row)
+
+            # Change detection (primary plugin only)
+            if yesterday:
+                prev    = keyword_positions(data[yesterday].get(p_slug, {})).get(keyword)
+                current = keyword_positions(data[today].get(p_slug, {})).get(keyword)
+                if isinstance(prev, int) and isinstance(current, int) and prev != current:
+                    changes.append({"keyword": keyword, "prev": prev, "current": current})
+
+        # Fetch active installs for all slugs
+        print(f"\n  Fetching active installs...")
+        for slug in all_slugs:
+            installs = fetch_installs(slug, delay=delay)
+            data[today][slug]["_installs"] = installs
+            print(f"    {slug:<40}  {format_installs(installs)}")
+
+        all_changes[p_slug] = changes
+        print(f"\n  {len(changes)} position change(s) for '{p_slug}'.")
 
     save_data(data)
-    print(f"\nData saved. {len(changes)} change(s) for '{plugin_slug}'.")
-    return data, changes
+    print(f"\nAll data saved.")
+    return data, all_changes
 
 
 # ---------------------------------------------------------------------------
-# DASHBOARD
+# DASHBOARD GENERATOR
 # ---------------------------------------------------------------------------
-
-def _pos_display(pos):
-    if isinstance(pos, int):
-        return f"#{pos}"
-    return "—"
-
 
 def generate_dashboard(data, config):
-    plugin_slug = config["plugin_slug"]
-    competitors  = config.get("competitors", [])
-    all_slugs    = [plugin_slug] + competitors
-
-    dates     = sorted(data.keys())
-    today     = dates[-1] if dates else None
+    plugins = config["plugins"]
+    dates   = sorted(data.keys())
+    today   = dates[-1] if dates else None
     yesterday = dates[-2] if len(dates) >= 2 else None
 
-    today_data = {slug: data[today].get(slug, {}) for slug in all_slugs} if today else {}
-    our_data   = today_data.get(plugin_slug, {})
+    tabs_html    = ""
+    content_html = ""
 
-    # ── Summary stats ────────────────────────────────────────────────────────
-    ranking  = [v for v in our_data.values() if isinstance(v, int)]
-    top10    = sum(1 for v in ranking if v <= 10)
-    top30    = sum(1 for v in ranking if v <= 30)
-    not_rank = sum(1 for k in KEYWORDS if not isinstance(our_data.get(k), int))
+    for p_idx, plugin_cfg in enumerate(plugins):
+        p_slug      = plugin_cfg["slug"]
+        p_name      = plugin_cfg.get("name", p_slug)
+        keywords    = plugin_cfg.get("keywords", [])
+        competitors = plugin_cfg.get("competitors", [])
+        comp_slugs  = [c["slug"] for c in competitors]
+        all_slugs   = [p_slug] + comp_slugs
 
-    # Count keywords where we beat ALL competitors
-    beating = 0
-    losing  = 0
-    for kw in KEYWORDS:
-        our = our_data.get(kw)
-        if not isinstance(our, int):
-            continue
-        comp_positions = [
-            today_data[c].get(kw)
-            for c in competitors
-            if isinstance(today_data.get(c, {}).get(kw), int)
-        ]
-        if comp_positions:
-            if our < min(comp_positions):
-                beating += 1
-            elif our > min(comp_positions):
-                losing += 1
+        our_raw   = data[today].get(p_slug, {}) if today else {}
+        our_kws   = keyword_positions(our_raw)
+        our_inst  = our_raw.get("_installs")
 
-    # ── Sort keywords: ranking first (by position asc), not-ranking last ─────
-    def sort_key(kw):
-        pos = our_data.get(kw)
-        return (0, pos) if isinstance(pos, int) else (1, 9999)
-    sorted_kws = sorted(KEYWORDS, key=sort_key)
+        prev_raw  = data[yesterday].get(p_slug, {}) if yesterday else {}
+        prev_inst = prev_raw.get("_installs")
 
-    # ── Competitor column headers ─────────────────────────────────────────────
-    comp_headers = "".join(
-        f'<th>{SLUG_LABELS.get(c, c)}</th>'
-        for c in competitors
-    )
+        # ── Stats ──────────────────────────────────────────────────────────
+        ranking  = [v for v in our_kws.values() if isinstance(v, int)]
+        top10    = sum(1 for v in ranking if v <= 10)
+        top30    = sum(1 for v in ranking if v <= 30)
+        not_rank = sum(1 for k in keywords if not isinstance(our_kws.get(k), int))
 
-    # ── Table rows ────────────────────────────────────────────────────────────
-    rows_html = ""
-    for kw in sorted_kws:
-        our   = our_data.get(kw)
-        prev  = data[yesterday].get(plugin_slug, {}).get(kw) if yesterday else None
+        beating = losing = 0
+        for kw in keywords:
+            our = our_kws.get(kw)
+            if not isinstance(our, int):
+                continue
+            comp_pos = [
+                keyword_positions(data[today].get(c, {})).get(kw)
+                for c in comp_slugs
+                if isinstance(keyword_positions(data[today].get(c, {})).get(kw), int)
+            ] if today else []
+            if comp_pos:
+                if our < min(comp_pos):
+                    beating += 1
+                elif our > min(comp_pos):
+                    losing += 1
 
-        # Our position cell
-        if not isinstance(our, int):
-            our_cell  = '<span class="pos-none">Not in top 100</span>'
-            row_class = "row-none"
-            trend_html = '<span class="trend-none">—</span>'
+        # Installs trend
+        if isinstance(our_inst, int) and isinstance(prev_inst, int):
+            inst_delta = our_inst - prev_inst
+            if inst_delta > 0:
+                inst_trend = f'<span style="color:#16a34a;font-size:.75rem">▲ +{format_installs(inst_delta)}</span>'
+            elif inst_delta < 0:
+                inst_trend = f'<span style="color:#dc2626;font-size:.75rem">▼ {format_installs(abs(inst_delta))}</span>'
+            else:
+                inst_trend = '<span style="color:#94a3b8;font-size:.75rem">No change</span>'
         else:
-            our_cell = f'<span class="pos-num">#{our}</span>'
-            if prev is None:
-                trend_html = '<span class="trend-new">New</span>'
-                row_class  = "row-new"
-            elif our < prev:
-                trend_html = f'<span class="trend-up">↑ +{prev - our} <small>(was #{prev})</small></span>'
-                row_class  = "row-up"
-            elif our > prev:
-                trend_html = f'<span class="trend-down">↓ −{our - prev} <small>(was #{prev})</small></span>'
-                row_class  = "row-down"
-            else:
-                trend_html = '<span class="trend-stable">→</span>'
-                row_class  = "row-stable"
+            inst_trend = ""
 
-        # Competitor cells
-        comp_cells = ""
+        # ── Sort keywords ──────────────────────────────────────────────────
+        def sort_key(kw):
+            pos = our_kws.get(kw)
+            return (0, pos) if isinstance(pos, int) else (1, 9999)
+        sorted_kws = sorted(keywords, key=sort_key)
+
+        # ── Installs comparison row ────────────────────────────────────────
+        installs_comp_cells = f'<td class="kw-cell" style="font-weight:700">Active Installs</td>'
+        installs_comp_cells += f'<td class="pos-cell"><span class="inst-val">{format_installs(our_inst)}</span><br>{inst_trend}</td>'
         for comp in competitors:
-            comp_pos = today_data.get(comp, {}).get(kw)
-            if not isinstance(comp_pos, int):
-                comp_cells += '<td class="comp-cell comp-none">—</td>'
-            elif not isinstance(our, int):
-                comp_cells += f'<td class="comp-cell">#{comp_pos}</td>'
-            elif our < comp_pos:
-                comp_cells += f'<td class="comp-cell comp-win" title="You\'re #{our}, they\'re #{comp_pos}">#{comp_pos} <span class="badge-win">▲{comp_pos - our}</span></td>'
-            elif our > comp_pos:
-                comp_cells += f'<td class="comp-cell comp-lose" title="You\'re #{our}, they\'re #{comp_pos}">#{comp_pos} <span class="badge-lose">▼{our - comp_pos}</span></td>'
+            c_raw  = data[today].get(comp["slug"], {}) if today else {}
+            c_inst = c_raw.get("_installs")
+            p_c_raw  = data[yesterday].get(comp["slug"], {}) if yesterday else {}
+            p_c_inst = p_c_raw.get("_installs")
+            cell_cls = ""
+            if isinstance(our_inst, int) and isinstance(c_inst, int):
+                cell_cls = "comp-win" if our_inst > c_inst else "comp-lose"
+            installs_comp_cells += f'<td class="comp-cell {cell_cls}" style="font-weight:600">{format_installs(c_inst)}</td>'
+
+        # ── Competitor comparison table ────────────────────────────────────
+        comp_col_headers = "".join(f'<th>{c["name"]}</th>' for c in competitors)
+
+        comp_rows = f'<tr style="background:#f0f9ff">{installs_comp_cells}<td></td></tr>'
+        for kw in sorted_kws:
+            our = our_kws.get(kw)
+            if not isinstance(our, int):
+                continue
+            row_parts = f'<td class="kw-cell">{kw}</td>'
+            row_parts += f'<td class="pos-cell"><span class="pos-num">#{our}</span></td>'
+            overall = "neutral"
+            for comp in competitors:
+                c_kws = keyword_positions(data[today].get(comp["slug"], {})) if today else {}
+                c_pos = c_kws.get(kw)
+                if not isinstance(c_pos, int):
+                    row_parts += '<td class="comp-cell comp-none">—</td>'
+                elif our < c_pos:
+                    row_parts += f'<td class="comp-cell comp-win">#{c_pos} <span class="badge-win">▲{c_pos-our}</span></td>'
+                    overall = "win"
+                elif our > c_pos:
+                    row_parts += f'<td class="comp-cell comp-lose">#{c_pos} <span class="badge-lose">▼{our-c_pos}</span></td>'
+                    if overall != "win":
+                        overall = "lose"
+                else:
+                    row_parts += f'<td class="comp-cell comp-tie">#{c_pos} <span class="badge-tie">tie</span></td>'
+
+            badge = (
+                '<span class="badge badge-green">Winning</span>' if overall == "win" else
+                '<span class="badge badge-red">Behind</span>'    if overall == "lose" else
+                '<span class="badge badge-gray">Neutral</span>'
+            )
+            comp_rows += f'<tr>{row_parts}<td>{badge}</td></tr>'
+
+        # ── Full keyword table rows ────────────────────────────────────────
+        comp_headers_full = "".join(f'<th>{c["name"]}</th>' for c in competitors)
+        hist_headers      = "".join(f'<th class="hist-header">{d[5:]}</th>' for d in dates[-7:])
+
+        kw_rows = ""
+        for kw in sorted_kws:
+            our  = our_kws.get(kw)
+            prev = keyword_positions(prev_raw).get(kw) if yesterday else None
+
+            if not isinstance(our, int):
+                our_cell   = '<span class="pos-none">Not in top 100</span>'
+                row_class  = "row-none"
+                trend_html = '<span class="trend-none">—</span>'
             else:
-                comp_cells += f'<td class="comp-cell comp-tie">#{comp_pos} <span class="badge-tie">tie</span></td>'
+                our_cell = f'<span class="pos-num">#{our}</span>'
+                if prev is None:
+                    trend_html = '<span class="trend-new">New</span>'; row_class = "row-new"
+                elif our < prev:
+                    trend_html = f'<span class="trend-up">↑ +{prev-our} <small>(was #{prev})</small></span>'; row_class = "row-up"
+                elif our > prev:
+                    trend_html = f'<span class="trend-down">↓ −{our-prev} <small>(was #{prev})</small></span>'; row_class = "row-down"
+                else:
+                    trend_html = '<span class="trend-stable">→</span>'; row_class = "row-stable"
 
-        # History cells (last 7 days, our plugin only)
-        hist_html = ""
-        for date in dates[-7:]:
-            pos = data[date].get(plugin_slug, {}).get(kw)
-            if isinstance(pos, int):
-                cls = "hist-top10" if pos <= 10 else ("hist-top30" if pos <= 30 else "")
-                hist_html += f'<td class="hist-cell {cls}">#{pos}</td>'
-            else:
-                hist_html += '<td class="hist-cell hist-none">—</td>'
+            comp_cells = ""
+            for comp in competitors:
+                c_kws = keyword_positions(data[today].get(comp["slug"], {})) if today else {}
+                c_pos = c_kws.get(kw)
+                if not isinstance(c_pos, int):
+                    comp_cells += '<td class="comp-cell comp-none">—</td>'
+                elif not isinstance(our, int):
+                    comp_cells += f'<td class="comp-cell">#{c_pos}</td>'
+                elif our < c_pos:
+                    comp_cells += f'<td class="comp-cell comp-win">#{c_pos} <span class="badge-win">▲{c_pos-our}</span></td>'
+                elif our > c_pos:
+                    comp_cells += f'<td class="comp-cell comp-lose">#{c_pos} <span class="badge-lose">▼{our-c_pos}</span></td>'
+                else:
+                    comp_cells += f'<td class="comp-cell comp-tie">#{c_pos} <span class="badge-tie">tie</span></td>'
 
-        rows_html += f"""
-        <tr class="{row_class}">
-          <td class="kw-cell">{kw}</td>
-          <td class="pos-cell">{our_cell}</td>
-          {comp_cells}
-          <td class="trend-cell">{trend_html}</td>
-          {hist_html}
-        </tr>"""
+            hist_cells = ""
+            for date in dates[-7:]:
+                pos = keyword_positions(data[date].get(p_slug, {})).get(kw)
+                if isinstance(pos, int):
+                    cls = "hist-top10" if pos <= 10 else ("hist-top30" if pos <= 30 else "")
+                    hist_cells += f'<td class="hist-cell {cls}">#{pos}</td>'
+                else:
+                    hist_cells += '<td class="hist-cell hist-none">—</td>'
 
-    # History date headers
-    hist_headers = "".join(
-        f'<th class="hist-header">{d[5:]}</th>'
-        for d in dates[-7:]
-    )
+            kw_rows += f"""
+            <tr class="{row_class}">
+              <td class="kw-cell">{kw}</td>
+              <td class="pos-cell">{our_cell}</td>
+              {comp_cells}
+              <td class="trend-cell">{trend_html}</td>
+              {hist_cells}
+            </tr>"""
 
-    # ── Competitor comparison summary table ───────────────────────────────────
-    comp_summary_rows = ""
-    win_kws  = []
-    lose_kws = []
-    for kw in sorted_kws:
-        our = our_data.get(kw)
-        if not isinstance(our, int):
-            continue
-        row_parts = f'<td class="kw-cell">{kw}</td><td class="pos-cell"><span class="pos-num">#{our}</span></td>'
-        overall = "neutral"
-        for comp in competitors:
-            comp_pos = today_data.get(comp, {}).get(kw)
-            if not isinstance(comp_pos, int):
-                row_parts += '<td class="comp-cell comp-none">—</td>'
-            elif our < comp_pos:
-                row_parts += f'<td class="comp-cell comp-win">#{comp_pos}</td>'
-                overall = "win"
-            elif our > comp_pos:
-                row_parts += f'<td class="comp-cell comp-lose">#{comp_pos}</td>'
-                if overall != "win":
-                    overall = "lose"
-            else:
-                row_parts += f'<td class="comp-cell comp-tie">#{comp_pos}</td>'
+        # ── Assemble tab ───────────────────────────────────────────────────
+        active_cls = "active" if p_idx == 0 else ""
 
-        badge = ""
-        if overall == "win":
-            badge = '<span class="badge badge-green">Winning</span>'
-            win_kws.append(kw)
-        elif overall == "lose":
-            badge = '<span class="badge badge-red">Behind</span>'
-            lose_kws.append(kw)
-        else:
-            badge = '<span class="badge badge-gray">Neutral</span>'
+        tabs_html += f'<button class="tab {active_cls}" onclick="showTab({p_idx}, this)">{p_name}</button>'
 
-        comp_summary_rows += f'<tr>{row_parts}<td>{badge}</td></tr>'
+        content_html += f"""
+        <div id="tab-{p_idx}" class="tab-content {active_cls}">
 
-    comp_col_headers = "".join(
-        f'<th>{SLUG_LABELS.get(c, c)}</th>'
-        for c in competitors
-    )
+          <!-- Stats -->
+          <div class="stats">
+            <div class="card c-blue">
+              <div class="value">{format_installs(our_inst)}</div>
+              <div class="label">Active Installs</div>
+              <div style="margin-top:4px;min-height:16px">{inst_trend}</div>
+            </div>
+            <div class="card">
+              <div class="value">{len(ranking)}/{len(keywords)}</div>
+              <div class="label">Ranking</div>
+            </div>
+            <div class="card c-green">
+              <div class="value">{top10}</div>
+              <div class="label">In Top 10</div>
+            </div>
+            <div class="card">
+              <div class="value">{top30}</div>
+              <div class="label">In Top 30</div>
+            </div>
+            <div class="card c-green">
+              <div class="value">{beating}</div>
+              <div class="label">Beating Competitors</div>
+            </div>
+            <div class="card c-red">
+              <div class="value">{losing}</div>
+              <div class="label">Behind Competitors</div>
+            </div>
+          </div>
+
+          <!-- Competitor Comparison -->
+          <div class="section-title">Competitor Comparison</div>
+          <div class="table-wrap" style="margin-bottom:28px">
+            <div class="table-title">
+              <span>Head-to-head position and active installs per keyword</span>
+              <div class="legend">
+                <span><span class="legend-dot" style="background:#16a34a"></span>Winning</span>
+                <span><span class="legend-dot" style="background:#dc2626"></span>Behind</span>
+              </div>
+            </div>
+            <table>
+              <thead><tr>
+                <th>Keyword</th><th>Your Position</th>{comp_col_headers}<th>Status</th>
+              </tr></thead>
+              <tbody>{comp_rows}</tbody>
+            </table>
+          </div>
+
+          <!-- Full keyword history -->
+          <div class="section-title">All Keywords — Position History</div>
+          <div class="table-wrap">
+            <div class="table-title">
+              <span>Daily positions · sorted by current rank</span>
+              <div class="legend">
+                <span><span class="legend-dot" style="background:#16a34a"></span>Improved</span>
+                <span><span class="legend-dot" style="background:#dc2626"></span>Declined</span>
+                <span><span class="legend-dot" style="background:#7c3aed"></span>New</span>
+              </div>
+            </div>
+            <table>
+              <thead><tr>
+                <th>Keyword</th><th>Your Position</th>{comp_headers_full}
+                <th>Change vs Yesterday</th>{hist_headers}
+              </tr></thead>
+              <tbody>{kw_rows}</tbody>
+            </table>
+          </div>
+
+        </div>"""
 
     last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    plugin_count = len(plugins)
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Accessibility Plus – Keyword Tracker</title>
+  <title>WP Keyword Tracker</title>
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-    body {{
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f1f5f9; color: #1e293b; font-size: 14px;
-    }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9; color: #1e293b; font-size: 14px; }}
 
-    /* ── Header ─────────────────────────────────────────────── */
-    .header {{
-      background: linear-gradient(135deg, #1d4ed8, #2563eb);
-      color: #fff; padding: 20px 32px;
-      display: flex; justify-content: space-between; align-items: center;
-    }}
-    .header h1 {{ font-size: 1.2rem; font-weight: 700; letter-spacing: -.02em; }}
+    /* ── Header ── */
+    .header {{ background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff;
+               padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; }}
+    .header h1 {{ font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em; }}
     .header p  {{ font-size: 0.78rem; opacity: .72; margin-top: 3px; }}
     .header .updated {{ font-size: 0.72rem; opacity: .6; text-align: right; }}
 
-    /* ── Layout ─────────────────────────────────────────────── */
-    .container {{ max-width: 1400px; margin: 0 auto; padding: 24px 32px; }}
-    .section-title {{
-      font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .07em; color: #94a3b8; margin: 28px 0 12px;
-    }}
+    /* ── Tabs ── */
+    .tab-bar {{ background: #1e40af; padding: 0 32px; display: flex; gap: 2px; }}
+    .tab {{ background: transparent; border: none; color: rgba(255,255,255,.65);
+             padding: 12px 20px; font-size: .85rem; font-weight: 500; cursor: pointer;
+             border-bottom: 3px solid transparent; transition: all .15s; }}
+    .tab:hover  {{ color: #fff; }}
+    .tab.active {{ color: #fff; border-bottom-color: #fff; background: rgba(255,255,255,.1); }}
 
-    /* ── Stat cards ─────────────────────────────────────────── */
+    /* ── Layout ── */
+    .container {{ max-width: 1400px; margin: 0 auto; padding: 24px 32px; }}
+    .tab-content {{ display: none; }}
+    .tab-content.active {{ display: block; }}
+    .section-title {{ font-size: .78rem; font-weight: 700; text-transform: uppercase;
+                       letter-spacing: .07em; color: #94a3b8; margin: 28px 0 12px; }}
+
+    /* ── Stat cards ── */
     .stats {{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 28px; }}
-    .card {{
-      background: #fff; border-radius: 10px; padding: 18px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.08);
-    }}
-    .card .value {{ font-size: 2rem; font-weight: 800; color: #2563eb; line-height: 1; }}
-    .card .label {{ font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-top: 5px; }}
+    .card {{ background: #fff; border-radius: 10px; padding: 18px 20px;
+              box-shadow: 0 1px 3px rgba(0,0,0,.08); }}
+    .card .value {{ font-size: 1.75rem; font-weight: 800; color: #2563eb; line-height: 1; }}
+    .card .label {{ font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+                    color: #94a3b8; margin-top: 5px; }}
     .card.c-green .value {{ color: #16a34a; }}
     .card.c-red   .value {{ color: #dc2626; }}
-    .card.c-purple .value {{ color: #7c3aed; }}
+    .card.c-blue  .value {{ color: #0891b2; }}
+    .inst-val {{ font-size: 1.75rem; font-weight: 800; color: #0891b2; }}
 
-    /* ── Table wrapper ──────────────────────────────────────── */
-    .table-wrap {{
-      background: #fff; border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-x: auto;
-    }}
-    .table-title {{
-      padding: 13px 18px; font-size: 0.82rem; font-weight: 600;
-      color: #475569; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
-      display: flex; justify-content: space-between; align-items: center;
-    }}
-    .table-title .legend {{
-      display: flex; gap: 16px; font-weight: 400; font-size: 0.75rem; color: #64748b;
-    }}
-    .legend-dot {{
-      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px;
-    }}
+    /* ── Table wrapper ── */
+    .table-wrap {{ background: #fff; border-radius: 10px;
+                   box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-x: auto; }}
+    .table-title {{ padding: 13px 18px; font-size: .82rem; font-weight: 600; color: #475569;
+                    border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+                    display: flex; justify-content: space-between; align-items: center; }}
+    .table-title .legend {{ display: flex; gap: 16px; font-weight: 400; font-size: .75rem; color: #64748b; }}
+    .legend-dot {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }}
 
     table {{ width: 100%; border-collapse: collapse; }}
-    th {{
-      padding: 9px 13px; text-align: left; font-size: 0.68rem;
-      text-transform: uppercase; letter-spacing: .06em;
-      color: #94a3b8; background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0; white-space: nowrap;
-    }}
+    th {{ padding: 9px 13px; text-align: left; font-size: .68rem; text-transform: uppercase;
+           letter-spacing: .06em; color: #94a3b8; background: #f8fafc;
+           border-bottom: 1px solid #e2e8f0; white-space: nowrap; }}
     td {{ padding: 9px 13px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }}
     tr:last-child td {{ border-bottom: none; }}
-    tr:hover td {{ background: rgba(0,0,0,.015); }}
+    tr:hover td {{ background: rgba(0,0,0,.012); }}
 
-    .kw-cell   {{ font-weight: 500; min-width: 210px; }}
+    .kw-cell   {{ font-weight: 500; min-width: 200px; }}
     .pos-cell  {{ font-size: .95rem; font-weight: 700; min-width: 90px; }}
     .trend-cell {{ min-width: 150px; }}
-
     .pos-num  {{ color: #1e293b; }}
-    .pos-none {{ font-size: 0.75rem; color: #cbd5e1; font-weight: 400; }}
+    .pos-none {{ font-size: .75rem; color: #cbd5e1; font-weight: 400; }}
 
     .trend-up     {{ color: #16a34a; font-weight: 600; }}
     .trend-down   {{ color: #dc2626; font-weight: 600; }}
@@ -465,32 +526,28 @@ def generate_dashboard(data, config):
     .trend-none   {{ color: #cbd5e1; }}
     small         {{ font-weight: 400; opacity: .72; }}
 
-    /* ── Row highlights ─────────────────────────────────────── */
     .row-down td {{ background: #fff5f5; }}
     .row-up   td {{ background: #f0fdf4; }}
     .row-new  td {{ background: #faf5ff; }}
     .row-none    {{ opacity: .6; }}
 
-    /* ── Competitor cells ───────────────────────────────────── */
-    .comp-cell {{ text-align: center; min-width: 130px; font-size: 0.82rem; }}
-    .comp-none {{ color: #cbd5e1; }}
-    .comp-win  {{ color: #15803d; background: #f0fdf4; }}
-    .comp-lose {{ color: #b91c1c; background: #fff5f5; }}
-    .comp-tie  {{ color: #6b7280; }}
+    .comp-cell  {{ text-align: center; min-width: 120px; font-size: .82rem; }}
+    .comp-none  {{ color: #cbd5e1; }}
+    .comp-win   {{ color: #15803d; background: #f0fdf4; }}
+    .comp-lose  {{ color: #b91c1c; background: #fff5f5; }}
+    .comp-tie   {{ color: #6b7280; }}
 
-    .badge-win  {{ font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
-    .badge-lose {{ font-size: 0.65rem; background: #fee2e2; color: #b91c1c; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
-    .badge-tie  {{ font-size: 0.65rem; background: #f3f4f6; color: #6b7280; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
+    .badge-win  {{ font-size: .65rem; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
+    .badge-lose {{ font-size: .65rem; background: #fee2e2; color: #b91c1c; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
+    .badge-tie  {{ font-size: .65rem; background: #f3f4f6; color: #6b7280; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
 
-    /* ── Badge pills ────────────────────────────────────────── */
-    .badge {{ font-size: 0.7rem; padding: 2px 8px; border-radius: 99px; font-weight: 600; }}
-    .badge-green  {{ background: #dcfce7; color: #15803d; }}
-    .badge-red    {{ background: #fee2e2; color: #b91c1c; }}
-    .badge-gray   {{ background: #f3f4f6; color: #6b7280; }}
+    .badge       {{ font-size: .7rem; padding: 2px 8px; border-radius: 99px; font-weight: 600; }}
+    .badge-green {{ background: #dcfce7; color: #15803d; }}
+    .badge-red   {{ background: #fee2e2; color: #b91c1c; }}
+    .badge-gray  {{ background: #f3f4f6; color: #6b7280; }}
 
-    /* ── History cells ──────────────────────────────────────── */
     .hist-header {{ text-align: center; }}
-    .hist-cell   {{ text-align: center; color: #64748b; font-size: 0.75rem; min-width: 52px; }}
+    .hist-cell   {{ text-align: center; color: #64748b; font-size: .75rem; min-width: 52px; }}
     .hist-top10  {{ color: #16a34a; font-weight: 700; }}
     .hist-top30  {{ color: #2563eb; font-weight: 600; }}
     .hist-none   {{ color: #e2e8f0; }}
@@ -498,6 +555,7 @@ def generate_dashboard(data, config):
     @media (max-width: 900px) {{
       .stats {{ grid-template-columns: repeat(3, 1fr); }}
       .container {{ padding: 16px; }}
+      .tab-bar {{ padding: 0 16px; }}
     }}
   </style>
 </head>
@@ -505,97 +563,28 @@ def generate_dashboard(data, config):
 
 <header class="header">
   <div>
-    <h1>Accessibility Plus — Keyword Position Tracker</h1>
-    <p>WordPress.org Plugin Directory · {len(KEYWORDS)} keywords · vs {len(competitors)} competitor(s)</p>
+    <h1>WordPress Plugin Keyword Tracker</h1>
+    <p>{plugin_count} plugin(s) tracked · WordPress.org Plugin Directory</p>
   </div>
   <div class="updated">Last updated<br>{last_updated}</div>
 </header>
 
+<nav class="tab-bar">
+  {tabs_html}
+</nav>
+
 <div class="container">
+  {content_html}
+</div>
 
-  <!-- ── Stats ── -->
-  <div class="stats">
-    <div class="card">
-      <div class="value">{len(ranking)}/{len(KEYWORDS)}</div>
-      <div class="label">Ranking</div>
-    </div>
-    <div class="card c-green">
-      <div class="value">{top10}</div>
-      <div class="label">In Top 10</div>
-    </div>
-    <div class="card">
-      <div class="value">{top30}</div>
-      <div class="label">In Top 30</div>
-    </div>
-    <div class="card c-red">
-      <div class="value">{not_rank}</div>
-      <div class="label">Not Ranking</div>
-    </div>
-    <div class="card c-green">
-      <div class="value">{beating}</div>
-      <div class="label">Beating Competitors</div>
-    </div>
-    <div class="card c-red">
-      <div class="value">{losing}</div>
-      <div class="label">Behind Competitors</div>
-    </div>
-  </div>
-
-  <!-- ── Competitor Comparison ── -->
-  <div class="section-title">Competitor Comparison</div>
-  <div class="table-wrap" style="margin-bottom: 28px;">
-    <div class="table-title">
-      <span>Head-to-head: Your Position vs Competitors (per keyword)</span>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:#16a34a"></span>Winning (your # is lower)</span>
-        <span><span class="legend-dot" style="background:#dc2626"></span>Behind</span>
-        <span><span class="legend-dot" style="background:#9ca3af"></span>Tied / No data</span>
-      </div>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Keyword</th>
-          <th>Your Position</th>
-          {comp_col_headers}
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {comp_summary_rows}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- ── Full Keyword Table ── -->
-  <div class="section-title">All Keywords — Position History</div>
-  <div class="table-wrap">
-    <div class="table-title">
-      <span>Daily positions · sorted by current rank</span>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:#16a34a"></span>Improved</span>
-        <span><span class="legend-dot" style="background:#dc2626"></span>Declined</span>
-        <span><span class="legend-dot" style="background:#7c3aed"></span>New entry</span>
-        <span><span class="legend-dot" style="background:#e2e8f0;border:1px solid #d1d5db"></span>Not top 100</span>
-      </div>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Keyword</th>
-          <th>Your Position</th>
-          {comp_headers}
-          <th>Change vs Yesterday</th>
-          {hist_headers}
-        </tr>
-      </thead>
-      <tbody>
-        {rows_html}
-      </tbody>
-    </table>
-  </div>
-
-</div><!-- /container -->
+<script>
+function showTab(idx, btn) {{
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + idx).classList.add('active');
+  btn.classList.add('active');
+}}
+</script>
 </body>
 </html>"""
 
@@ -608,111 +597,110 @@ def generate_dashboard(data, config):
 # SLACK NOTIFICATION
 # ---------------------------------------------------------------------------
 
-def send_slack(data, changes, config):
+def send_slack(data, all_changes, config):
     slack_cfg = config.get("slack", {})
     if not slack_cfg.get("enabled"):
         return
-
     webhook_url = slack_cfg.get("webhook_url", "")
     if not webhook_url or "YOUR/WEBHOOK" in webhook_url:
-        print("[SLACK] Skipped — no valid webhook URL in config.")
+        print("[SLACK] Skipped — no valid webhook URL.")
         return
 
-    plugin_slug = config["plugin_slug"]
-    competitors  = config.get("competitors", [])
+    dates    = sorted(data.keys())
+    today    = dates[-1] if dates else None
+    yesterday = dates[-2] if len(dates) >= 2 else None
+    plugins  = config["plugins"]
 
-    dates     = sorted(data.keys())
-    today     = dates[-1] if dates else None
-    today_data = {slug: data[today].get(slug, {}) for slug in [plugin_slug] + competitors} if today else {}
-    our_data   = today_data.get(plugin_slug, {})
-
-    ranking = [v for v in our_data.values() if isinstance(v, int)]
-    top10   = sum(1 for v in ranking if v <= 10)
-    top3    = sum(1 for v in ranking if v <= 3)
-
-    declined = [c for c in changes if c["current"] > c["prev"]]
-    improved = [c for c in changes if c["current"] < c["prev"]]
-
-    # ── Competitor insight ────────────────────────────────────────────────────
-    win_kws  = []
-    lose_kws = []
-    for kw in KEYWORDS:
-        our = our_data.get(kw)
-        if not isinstance(our, int):
-            continue
-        comp_pos = [
-            today_data[c].get(kw)
-            for c in competitors
-            if isinstance(today_data.get(c, {}).get(kw), int)
-        ]
-        if not comp_pos:
-            continue
-        best = min(comp_pos)
-        if our < best:
-            win_kws.append((kw, our, best))
-        elif our > best:
-            lose_kws.append((kw, our, best))
-
-    # ── Build Slack blocks ────────────────────────────────────────────────────
     blocks = [
-        {
-            "type": "header",
-            "text": {"type": "plain_text", "text": "🔍 Daily Keyword Report — Accessibility Plus"},
-        },
-        {
-            "type": "context",
-            "elements": [{
-                "type": "mrkdwn",
-                "text": f"*{datetime.utcnow().strftime('%B %d, %Y')}*  ·  WordPress.org Plugin Directory  ·  {len(KEYWORDS)} keywords tracked",
-            }],
-        },
+        {"type": "header", "text": {"type": "plain_text", "text": "📊 Daily WP Keyword Report"}},
+        {"type": "context", "elements": [{"type": "mrkdwn",
+            "text": f"*{datetime.utcnow().strftime('%B %d, %Y')}*  ·  WordPress.org Plugin Directory  ·  {len(plugins)} plugin(s)"}]},
         {"type": "divider"},
-        {
-            "type": "section",
-            "fields": [
-                {"type": "mrkdwn", "text": f"*Ranking:*\n{len(ranking)}/{len(KEYWORDS)} keywords"},
-                {"type": "mrkdwn", "text": f"*In Top 10:*\n{top10} keywords"},
-                {"type": "mrkdwn", "text": f"*In Top 3:*\n{top3} keywords"},
-                {"type": "mrkdwn", "text": f"*Changes today:*\n↑ {len(improved)} improved · ↓ {len(declined)} declined"},
-            ],
-        },
     ]
 
-    if declined:
-        mention = slack_cfg.get("mention_on_decline", "")
-        prefix  = f"{mention} " if mention and len(declined) >= 3 else ""
-        lines   = [f"• *{c['keyword']}*  #{c['prev']} → #{c['current']} _(↓{c['current'] - c['prev']})_" for c in declined]
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"{prefix}*📉 Declined ({len(declined)})*\n" + "\n".join(lines)},
-        })
+    for plugin_cfg in plugins:
+        p_slug   = plugin_cfg["slug"]
+        p_name   = plugin_cfg.get("name", p_slug)
+        keywords = plugin_cfg.get("keywords", [])
+        comp_slugs = [c["slug"] for c in plugin_cfg.get("competitors", [])]
 
-    if improved:
-        lines = [f"• *{c['keyword']}*  #{c['prev']} → #{c['current']} _(↑{c['prev'] - c['current']})_" for c in improved]
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*📈 Improved ({len(improved)})*\n" + "\n".join(lines)},
-        })
+        our_raw  = data[today].get(p_slug, {}) if today else {}
+        our_kws  = keyword_positions(our_raw)
+        our_inst = our_raw.get("_installs")
 
-    if lose_kws:
-        lines = [f"• *{kw}*  — You #{our}, best competitor #{best}" for kw, our, best in lose_kws[:6]]
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*⚠️ Behind a competitor ({len(lose_kws)} keywords)*\n" + "\n".join(lines)},
-        })
+        prev_raw  = data[yesterday].get(p_slug, {}) if yesterday else {}
+        prev_inst = prev_raw.get("_installs")
 
-    if win_kws:
-        lines = [f"• *{kw}*  — You #{our}, best competitor #{best}" for kw, our, best in win_kws[:6]]
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*🏆 Beating all competitors ({len(win_kws)} keywords)*\n" + "\n".join(lines)},
-        })
+        ranking = [v for v in our_kws.values() if isinstance(v, int)]
+        top10   = sum(1 for v in ranking if v <= 10)
+        top3    = sum(1 for v in ranking if v <= 3)
 
-    blocks.append({"type": "divider"})
-    blocks.append({
-        "type": "context",
-        "elements": [{"type": "mrkdwn", "text": "Open `dashboard.html` for full history and visual comparison table."}],
-    })
+        changes  = all_changes.get(p_slug, [])
+        declined = [c for c in changes if c["current"] > c["prev"]]
+        improved = [c for c in changes if c["current"] < c["prev"]]
+
+        # Installs delta
+        if isinstance(our_inst, int) and isinstance(prev_inst, int) and our_inst != prev_inst:
+            delta = our_inst - prev_inst
+            inst_str = f"{format_installs(our_inst)}  ({'▲' if delta > 0 else '▼'} {format_installs(abs(delta))})"
+        else:
+            inst_str = format_installs(our_inst)
+
+        # Competitor wins/losses
+        win_kws = lose_kws = []
+        if today:
+            win_kws  = []
+            lose_kws = []
+            for kw in keywords:
+                our = our_kws.get(kw)
+                if not isinstance(our, int):
+                    continue
+                comp_pos = [
+                    keyword_positions(data[today].get(c, {})).get(kw)
+                    for c in comp_slugs
+                    if isinstance(keyword_positions(data[today].get(c, {})).get(kw), int)
+                ]
+                if not comp_pos:
+                    continue
+                best = min(comp_pos)
+                if our < best:
+                    win_kws.append((kw, our, best))
+                elif our > best:
+                    lose_kws.append((kw, our, best))
+
+        plugin_blocks = [
+            {"type": "section", "fields": [
+                {"type": "mrkdwn", "text": f"*{p_name}*\n`{p_slug}`"},
+                {"type": "mrkdwn", "text": f"*Active Installs:*\n{inst_str}"},
+                {"type": "mrkdwn", "text": f"*Ranking:*\n{len(ranking)}/{len(keywords)} keywords"},
+                {"type": "mrkdwn", "text": f"*Top 10 / Top 3:*\n{top10} / {top3} keywords"},
+                {"type": "mrkdwn", "text": f"*Changes:*\n↑ {len(improved)} improved · ↓ {len(declined)} declined"},
+                {"type": "mrkdwn", "text": f"*vs Competitors:*\n🏆 {len(win_kws)} winning · ⚠️ {len(lose_kws)} behind"},
+            ]},
+        ]
+
+        if declined:
+            mention = slack_cfg.get("mention_on_decline", "")
+            prefix  = f"{mention} " if mention and len(declined) >= 3 else ""
+            lines   = [f"• *{c['keyword']}*  #{c['prev']} → #{c['current']} _(↓{c['current']-c['prev']})_" for c in declined]
+            plugin_blocks.append({"type": "section",
+                "text": {"type": "mrkdwn", "text": f"{prefix}*📉 Declined ({len(declined)})*\n" + "\n".join(lines)}})
+
+        if improved:
+            lines = [f"• *{c['keyword']}*  #{c['prev']} → #{c['current']} _(↑{c['prev']-c['current']})_" for c in improved]
+            plugin_blocks.append({"type": "section",
+                "text": {"type": "mrkdwn", "text": f"*📈 Improved ({len(improved)})*\n" + "\n".join(lines)}})
+
+        if lose_kws:
+            lines = [f"• *{kw}*  — You #{our}, best competitor #{best}" for kw, our, best in lose_kws[:5]]
+            plugin_blocks.append({"type": "section",
+                "text": {"type": "mrkdwn", "text": f"*⚠️ Behind a competitor*\n" + "\n".join(lines)}})
+
+        blocks += plugin_blocks
+        blocks.append({"type": "divider"})
+
+    blocks.append({"type": "context", "elements": [{"type": "mrkdwn",
+        "text": "View full dashboard → https://safwana-wy.github.io/accessibility-keyword-tracker/"}]})
 
     try:
         resp = requests.post(webhook_url, json={"blocks": blocks}, timeout=10)
@@ -728,42 +716,34 @@ def send_slack(data, changes, config):
 # EMAIL ALERT
 # ---------------------------------------------------------------------------
 
-def send_email(changes, config):
+def send_email(all_changes, config):
     email_cfg = config.get("email", {})
-    if not email_cfg.get("enabled") or not changes:
+    if not email_cfg.get("enabled"):
+        return
+    any_changes = any(v for v in all_changes.values())
+    if not any_changes:
         return
 
-    declined = [c for c in changes if c["current"] > c["prev"]]
-    improved = [c for c in changes if c["current"] < c["prev"]]
+    lines = []
+    for plugin_cfg in config["plugins"]:
+        p_slug = plugin_cfg["slug"]
+        p_name = plugin_cfg.get("name", p_slug)
+        changes = all_changes.get(p_slug, [])
+        if not changes:
+            continue
+        declined = [c for c in changes if c["current"] > c["prev"]]
+        improved = [c for c in changes if c["current"] < c["prev"]]
+        lines.append(f"<h3>{p_name}</h3>")
+        if declined:
+            lines.append("<p style='color:#dc2626'>Declined: " +
+                ", ".join(f"{c['keyword']} (#{c['prev']}→#{c['current']})" for c in declined) + "</p>")
+        if improved:
+            lines.append("<p style='color:#16a34a'>Improved: " +
+                ", ".join(f"{c['keyword']} (#{c['prev']}→#{c['current']})" for c in improved) + "</p>")
 
-    subject = (
-        f"[Accessibility Plus] {len(declined)} keyword(s) declined · "
-        f"{datetime.utcnow().strftime('%Y-%m-%d')}"
-    )
-
-    def table_rows(items, direction):
-        rows = ""
-        color = "#dc2626" if direction == "down" else "#16a34a"
-        for c in items:
-            delta = abs(c["current"] - c["prev"])
-            arrow = "↓" if direction == "down" else "↑"
-            rows += f"""<tr>
-              <td style="padding:7px 12px;font-weight:500">{c["keyword"]}</td>
-              <td style="padding:7px 12px;color:{color};font-weight:700">
-                {arrow} #{c["current"]} <span style="color:#94a3b8;font-weight:400">(was #{c["prev"]}, Δ{delta})</span>
-              </td></tr>"""
-        return rows
-
-    body = f"""<html><body style="font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
-    <div style="background:#2563eb;color:#fff;padding:18px 22px;border-radius:8px 8px 0 0">
-      <h2 style="margin:0;font-size:1rem">Keyword Position Update</h2>
-      <p style="margin:3px 0 0;opacity:.75;font-size:.8rem">accessibility-plus · {datetime.utcnow().strftime('%B %d, %Y')}</p>
-    </div>
-    <div style="padding:18px 22px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
-    {"<h3 style='color:#dc2626;margin:0 0 8px'>⬇ Declined</h3><table width='100%' style='border-collapse:collapse;background:#fff5f5;border-radius:6px'>" + table_rows(declined, "down") + "</table>" if declined else ""}
-    {"<h3 style='color:#16a34a;margin:20px 0 8px'>⬆ Improved</h3><table width='100%' style='border-collapse:collapse;background:#f0fdf4;border-radius:6px'>" + table_rows(improved, "up") + "</table>" if improved else ""}
-    <p style="margin-top:20px;font-size:.72rem;color:#94a3b8">Open dashboard.html for full history and competitor comparison.</p>
-    </div></body></html>"""
+    subject = f"[WP Keyword Tracker] Position changes · {datetime.utcnow().strftime('%Y-%m-%d')}"
+    body    = f"<html><body style='font-family:sans-serif;max-width:600px;margin:0 auto'>" \
+              f"<h2>Keyword Position Changes</h2>{''.join(lines)}</body></html>"
 
     try:
         msg = MIMEMultipart("alternative")
@@ -774,7 +754,7 @@ def send_email(changes, config):
         with smtplib.SMTP_SSL(email_cfg["smtp_host"], email_cfg["smtp_port"]) as server:
             server.login(email_cfg["username"], email_cfg["password"])
             server.sendmail(email_cfg["from"], email_cfg["to"], msg.as_string())
-        print(f"Email alert sent to {email_cfg['to']}")
+        print(f"Email sent to {email_cfg['to']}")
     except Exception as exc:
         print(f"[EMAIL ERROR] {exc}")
 
@@ -789,15 +769,15 @@ if __name__ == "__main__":
 
     if dry_run:
         print("Dry run — regenerating dashboard from existing data.")
-        data = migrate_data(load_data(), config["plugin_slug"])
+        data = load_data()
         if not data:
             print("No data found. Run without --dry first.")
             sys.exit(1)
         generate_dashboard(data, config)
     else:
-        data, changes = run_check(config)
+        data, all_changes = run_check(config)
         generate_dashboard(data, config)
-        send_slack(data, changes, config)
-        send_email(changes, config)
+        send_slack(data, all_changes, config)
+        send_email(all_changes, config)
 
     print("\nDone.")
