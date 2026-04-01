@@ -1,0 +1,23 @@
+{
+  "plugin_slug": "accessibility-plus",
+  "competitors": [
+    "accessibility-checker",
+    "wp-accessibility"
+  ],
+  "results_per_page": 100,
+  "request_delay_seconds": 1.5,
+  "slack": {
+    "enabled": true,
+    "webhook_url": "",
+    "mention_on_decline": "@channel"
+  },
+  "email": {
+    "enabled": false,
+    "to": "your@email.com",
+    "from": "tracker@yourdomain.com",
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 465,
+    "username": "your@gmail.com",
+    "password": "your-app-password-here"
+  }
+}
