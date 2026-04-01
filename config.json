@@ -41,6 +41,78 @@
         "ARIA plugin",
         "accessible wordpress"
       ]
+    },
+    {
+      "slug": "alt-text-generator",
+      "name": "Alt Text Generator AI",
+      "competitors": [
+        {"slug": "ai-alt-text-generator",              "name": "AI Alt Text Generator"},
+        {"slug": "ai-image-alt-text-generator-for-wp", "name": "AI Image Alt Text for WP"},
+        {"slug": "alt-text-generator-gpt-vision",      "name": "Alt Text GPT Vision"}
+      ],
+      "keywords": [
+        "alt text generator",
+        "alt text",
+        "image alt text",
+        "AI alt text",
+        "generate alt text",
+        "auto alt text",
+        "automatic alt text",
+        "bulk alt text",
+        "bulk alt text generator",
+        "alt text SEO",
+        "image SEO",
+        "AI image alt text",
+        "wordpress alt text",
+        "missing alt text",
+        "alt text accessibility",
+        "OpenAI alt text",
+        "media library alt text",
+        "WooCommerce alt text",
+        "AI image description",
+        "alt text plugin",
+        "image accessibility",
+        "auto generate alt text",
+        "GPT alt text",
+        "computer vision wordpress",
+        "alt text generator free"
+      ]
+    },
+    {
+      "slug": "accessibility-widget",
+      "name": "AccessYes Accessibility Widget",
+      "competitors": [
+        {"slug": "accessibe",                    "name": "accessiBe"},
+        {"slug": "accessibility-onetap",         "name": "Accessibility OneTap"},
+        {"slug": "userway-accessibility-widget", "name": "UserWay"}
+      ],
+      "keywords": [
+        "accessibility widget",
+        "wordpress accessibility widget",
+        "accessibility overlay",
+        "accessibility overlay wordpress",
+        "web accessibility widget",
+        "ada compliance widget",
+        "wcag widget",
+        "accessibility toolbar",
+        "accessibility plugin",
+        "ada compliance",
+        "wcag compliance",
+        "EAA compliance",
+        "section 508",
+        "web accessibility",
+        "wp accessibility",
+        "color contrast tool",
+        "font size accessibility",
+        "keyboard navigation",
+        "screen reader",
+        "accessibility statement",
+        "accessibe alternative",
+        "userway alternative",
+        "one click accessibility",
+        "WCAG 2.1",
+        "EN 301 549"
+      ]
     }
   ],
   "results_per_page": 100,
