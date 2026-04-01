@@ -4,18 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project does
 
-Tracks WordPress.org plugin directory search rankings for **accessibility-plus** (https://wordpress.org/plugins/accessibility-plus/) against two competitors:
-- `accessibility-checker` (Equalize Digital)
-- `wp-accessibility` (Joe Dolson)
+Tracks WordPress.org plugin directory search rankings and active installs for multiple WebToffee plugins and their competitors. Each daily run queries the WordPress.org Plugin API, records keyword positions and active install counts, generates a tabbed HTML dashboard (`index.html`), and sends a Slack summary to the Mozilor workspace `#plugin-keyword-tracking` channel.
 
-Each run queries the WordPress.org Plugin API for 32 keywords, records positions, generates a static HTML dashboard (`index.html`), and sends a daily Slack summary to the Mozilor workspace `#plugin-keyword-tracking` channel.
+Dashboard (GitHub Pages): https://safwana-wy.github.io/accessibility-keyword-tracker/
+GitHub repo: https://github.com/Safwana-WY/accessibility-keyword-tracker
 
-The dashboard is publicly hosted on GitHub Pages: https://safwana-wy.github.io/accessibility-keyword-tracker/
+## Plugins currently tracked
+
+| Plugin | Slug | Competitors |
+|---|---|---|
+| Accessibility Plus | `accessibility-plus` | `accessibility-checker`, `wp-accessibility` |
+| Alt Text Generator AI | `alt-text-generator` | `ai-alt-text-generator`, `ai-image-alt-text-generator-for-wp`, `alt-text-generator-gpt-vision` |
+| AccessYes Accessibility Widget | `accessibility-widget` | `accessibe`, `accessibility-onetap`, `userway-accessibility-widget` |
 
 ## Commands
 
 ```bash
-# Full run: fetch positions, update dashboard, send Slack alert
+# Full run: fetch positions + installs, update dashboard, send Slack alert
 python3 tracker.py
 
 # Regenerate dashboard from existing data without hitting the API
@@ -34,32 +39,60 @@ pip3 install requests
 ## Architecture
 
 **`tracker.py`** — single-file Python script with four responsibilities:
-1. `run_check()` — queries `https://api.wordpress.org/plugins/info/1.2/` for each keyword × slug combination, records 1-indexed positions
-2. `generate_dashboard()` — writes `index.html` as a self-contained static page (no external dependencies)
-3. `send_slack()` — posts a Block Kit message to the Slack webhook with daily summary, position changes, and competitor comparison
+1. `run_check()` — loops over all plugins in config, queries `https://api.wordpress.org/plugins/info/1.2/` for each keyword × slug, records 1-indexed positions; also calls `fetch_installs()` per slug
+2. `generate_dashboard()` — writes `index.html` as a self-contained tabbed static page (one tab per plugin, no external dependencies)
+3. `send_slack()` — posts a Block Kit message covering all plugins: installs, changes, competitor wins/losses
 4. `send_email()` — optional HTML email alert (disabled by default)
 
+**`config.json`** — single source of truth for all plugin definitions, keywords, and notification settings. No code changes needed to add plugins or keywords.
+
 **Data flow:**
-- Positions are stored in `data/positions.json` with structure `{ "YYYY-MM-DD": { "slug": { "keyword": position_int_or_null } } }`
-- `index.html` is committed to `main` branch and served via GitHub Pages — it updates every time the cron pushes
-- Changes are detected by comparing today vs yesterday in the same JSON file
+- Positions stored in `data/positions.json`: `{ "YYYY-MM-DD": { "slug": { "keyword": position, "_installs": N } } }`
+- Keys starting with `_` are internal metadata (installs); `keyword_positions()` helper strips them when processing rankings
+- `index.html` committed to `main` and served via GitHub Pages — updates every time the cron pushes
+- Changes detected by comparing today vs yesterday per plugin
 
 **Secrets handling:**
-- `secrets.json` (gitignored) holds the Slack webhook URL under key `slack_webhook_url`
-- `load_config()` merges secrets into the config at runtime — `config.json` contains no credentials and is safe to commit
-- Never put the webhook URL or any credentials in `config.json`
+- `secrets.json` (gitignored) holds `slack_webhook_url` and optionally `email_password`
+- `load_config()` merges secrets at runtime — `config.json` has no credentials and is safe to commit
+- Never put credentials in `config.json`
+
+## Adding a new plugin
+
+Add an entry to the `plugins` array in `config.json`. No code changes required:
+
+```json
+{
+  "slug": "your-plugin-slug",
+  "name": "Display Name",
+  "competitors": [
+    {"slug": "competitor-slug", "name": "Competitor Name"}
+  ],
+  "keywords": ["keyword one", "keyword two"]
+}
+```
+
+The slug must match exactly what appears in the WordPress.org URL: `wordpress.org/plugins/<slug>/`.
 
 ## Adding or changing keywords
 
-Edit the `KEYWORDS` list in `tracker.py` (lines 24–61). Keywords are grouped by category in comments. Each new keyword adds 3 API calls per run (one per slug). The 32-keyword × 3-slug current setup takes ~2.5 minutes to complete due to the 1.5s delay between requests.
-
-## Adding a competitor
-
-Add the slug to `competitors` in `config.json` and add a display label to `SLUG_LABELS` in `tracker.py`.
+Edit the `keywords` array for the relevant plugin in `config.json`. Each new keyword adds one API call per tracked slug per run. Current run time is ~8–10 minutes for all three plugins due to the 1.5s delay between requests.
 
 ## Keyword context
 
-Keywords were chosen based on competitor tag analysis (accessibility-checker, wp-accessibility) and WordPress.org search intent. Priority targets where the plugin is underperforming vs competitors:
+**Accessibility Plus** — Keywords chosen from competitor tag analysis (accessibility-checker, wp-accessibility). Priority gaps:
 - `accessibility plugin`, `wordpress accessibility`, `wcag plugin` — high volume, currently #8–#23
-- `wp accessibility`, `a11y` — competitor brand terms
-- `wcag 2.2`, `AODA` — currently not ranking at all; adding these to the plugin description would help
+- `wcag 2.2`, `AODA` — not ranking at all; adding to plugin description would help
+- `wp accessibility`, `a11y` — competitor brand terms worth targeting
+
+**Alt Text Generator AI** — Significant ground to make up; all competitors outrank on core terms:
+- `alt text generator` — currently #18 vs competitors at #2–#4
+- `image alt text`, `alt text` — ranking #45–#58, competitors at #7–#28
+- `bulk alt text generator` — best current position (#15); prioritise defending this
+- Active installs (20+) well behind competitors (600–1K+); early-stage plugin
+
+**AccessYes Accessibility Widget** — Competing against well-established overlay tools:
+- Targets the overlay/widget market segment (distinct from Accessibility Plus which is a code-level fixer)
+- `accessibe alternative`, `userway alternative` — competitor brand searches worth targeting
+- Active installs (10K+) vs OneTap (40K+) and UserWay (80K+)
+- Tags used by competitors: `accessibility widget`, `web accessibility`, `wp accessibility`
