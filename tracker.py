@@ -376,8 +376,13 @@ def generate_dashboard(data, config):
 
         tabs_html += f'<button class="tab {active_cls}" onclick="showTab({p_idx}, this)">{p_name}</button>'
 
+        wp_url = f"https://wordpress.org/plugins/{p_slug}/"
         content_html += f"""
         <div id="tab-{p_idx}" class="tab-content {active_cls}">
+
+          <div style="margin-bottom:12px">
+            <a href="{wp_url}" target="_blank" rel="noopener" style="font-size:13px;color:#2563eb;text-decoration:none">&#127760; View on WordPress.org &rarr;</a>
+          </div>
 
           <!-- Stats -->
           <div class="stats">
