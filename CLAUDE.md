@@ -30,6 +30,18 @@ python3 tracker.py --dry
 pip3 install requests
 ```
 
+## Git workflow
+
+After every change to the project (code, config, dashboard, docs), push to GitHub immediately:
+
+```bash
+git add <changed files>
+git commit -m "Short description of change"
+git push
+```
+
+Never leave changes uncommitted or unpushed at the end of a session. The GitHub Pages dashboard (`index.html`) is served directly from `main`, so changes only go live once pushed.
+
 ## Daily automation (cron at 8am)
 
 ```
