@@ -45,8 +45,10 @@ Never leave changes uncommitted or unpushed at the end of a session. The GitHub 
 ## Daily automation (cron at 8am)
 
 ```
-0 8 * * * cd /Users/safwanata/Desktop/ClaudeProjects/accessibility-keyword-tracker && python3 tracker.py >> data/tracker.log 2>&1 && git add index.html data/positions.json && git commit -m "Daily update $(date +\%Y-\%m-\%d)" && git push >> data/tracker.log 2>&1
+0 8 * * * cd /Users/safwanata/Desktop/ClaudeProjects/accessibility-keyword-tracker && /usr/bin/python3 tracker.py >> data/tracker.log 2>&1 && git add index.html data/positions.json && git commit -m "Daily update $(date +\%Y-\%m-\%d)" && git push >> data/tracker.log 2>&1
 ```
+
+Cron is registered on the local machine. The Mac must be on and awake at 8am for it to run. Check `data/tracker.log` to confirm runs are succeeding.
 
 ## Architecture
 
@@ -63,6 +65,7 @@ Never leave changes uncommitted or unpushed at the end of a session. The GitHub 
 - Keys starting with `_` are internal metadata (installs); `keyword_positions()` helper strips them when processing rankings
 - `index.html` committed to `main` and served via GitHub Pages — updates every time the cron pushes
 - Changes detected by comparing today vs yesterday per plugin
+- Week-on-week comparison shown on dashboard stat cards (Ranking, Top 10, Top 30) and in the keyword table ("vs Last Week" column); requires 7 days of data to populate
 
 **Secrets handling:**
 - `secrets.json` (gitignored) holds `slack_webhook_url` and optionally `email_password`
