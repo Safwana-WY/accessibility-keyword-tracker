@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Maintenance:** Update this file whenever architecture, commands, configuration, or key behaviour changes.
+
 ## What this project does
 
 Tracks WordPress.org plugin directory search rankings and active installs for multiple WebToffee plugins and their competitors. Each daily run queries the WordPress.org Plugin API, records keyword positions and active install counts, generates a tabbed HTML dashboard (`index.html`), and sends a Slack summary to the Mozilor workspace `#plugin-keyword-tracking` channel.
