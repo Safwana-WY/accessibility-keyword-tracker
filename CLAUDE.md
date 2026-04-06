@@ -42,13 +42,13 @@ git push
 
 Never leave changes uncommitted or unpushed at the end of a session. The GitHub Pages dashboard (`index.html`) is served directly from `main`, so changes only go live once pushed.
 
-## Daily automation (cron at 8am)
+## Daily automation (cron at 10am IST)
 
 ```
 0 10 * * * cd /Users/safwanata/Desktop/ClaudeProjects/accessibility-keyword-tracker && /usr/bin/python3 tracker.py >> data/tracker.log 2>&1 && git add index.html data/positions.json && git commit -m "Daily update $(date +\%Y-\%m-\%d)" && git push >> data/tracker.log 2>&1
 ```
 
-Cron is registered on the local machine. The Mac must be on and awake at 8am for it to run. Check `data/tracker.log` to confirm runs are succeeding.
+Cron is registered on the local machine. The Mac must be on and awake at 10am IST for it to run. Check `data/tracker.log` to confirm runs are succeeding.
 
 ## Architecture
 
