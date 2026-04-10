@@ -56,7 +56,7 @@ Cron is registered on the local machine. The Mac must be on and awake at 10am IS
 
 **`tracker.py`** — single-file Python script with four responsibilities:
 1. `run_check()` — loops over all plugins in config, queries `https://api.wordpress.org/plugins/info/1.2/` for each keyword × slug, records 1-indexed positions; also calls `fetch_installs()` per slug
-2. `generate_dashboard()` — writes `index.html` as a self-contained tabbed static page (one tab per plugin, no external dependencies)
+2. `generate_dashboard()` — writes `index.html` as a self-contained tabbed static page (one tab per plugin, no external dependencies). Each tab includes: stat cards, position trend charts (keyword trends + competitor comparison), competitor comparison table, and full keyword history table.
 3. `send_slack()` — posts a Block Kit message covering all plugins: installs, changes, competitor wins/losses
 4. `send_email()` — optional HTML email alert (disabled by default)
 
@@ -68,6 +68,7 @@ Cron is registered on the local machine. The Mac must be on and awake at 10am IS
 - `index.html` committed to `main` and served via GitHub Pages — updates every time the cron pushes
 - Changes detected by comparing today vs yesterday per plugin
 - Week-on-week comparison shown on dashboard stat cards (Ranking, Top 10, Top 30) and in the keyword table ("vs Last Week" column); requires 7 days of data to populate
+- Position trend charts use canvas-based rendering (no external dependencies); chart data is embedded as JSON in the HTML at generation time. Charts support Daily / Weekly / Monthly filters and show hover tooltips. Keyword chart shows top 12 keywords by current rank; competitor chart has a per-keyword dropdown.
 
 **Secrets handling:**
 - `secrets.json` (gitignored) holds `slack_webhook_url` and optionally `email_password`
