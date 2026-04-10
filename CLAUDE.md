@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Maintenance:** Update this file whenever architecture, commands, configuration, or key behaviour changes.
+> **Maintenance:** Update this file whenever architecture, commands, configuration, or key behaviour changes. This includes: adding/removing plugins or keywords, changing the cron schedule, modifying data storage format, updating notification settings, or fixing significant bugs. Keep it current — it is the single source of truth for this project.
 
 ## What this project does
 
