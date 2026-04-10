@@ -104,6 +104,25 @@
       .container { padding: 16px; }
       .tab-bar { padding: 0 16px; }
     }
+    
+    .chart-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 20px 24px; margin-bottom: 28px; }
+    .chart-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+    .chart-filter { display: flex; gap: 4px; background: #f1f5f9; border-radius: 8px; padding: 4px; }
+    .filter-btn { background: transparent; border: none; padding: 5px 14px; font-size: .78rem; font-weight: 500; color: #64748b; border-radius: 5px; cursor: pointer; transition: all .15s; }
+    .filter-btn:hover { color: #1e293b; }
+    .filter-btn.active { background: #fff; color: #2563eb; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .chart-title { font-size: .82rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
+    .chart-subtitle { font-size: .72rem; color: #94a3b8; margin-bottom: 12px; }
+    .chart-container { width: 100%; overflow: hidden; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; }
+    .legend-item { display: flex; align-items: center; font-size: .72rem; color: #475569; gap: 5px; }
+    .legend-swatch { display: inline-block; width: 12px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+    .comp-kw-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
+    .comp-kw-label { font-size: .78rem; color: #64748b; }
+    .kw-select { border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 10px; font-size: .78rem; color: #475569; background: #fff; cursor: pointer; outline: none; }
+    .kw-select:focus { border-color: #2563eb; }
+    #chart-tooltip { position: fixed; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; box-shadow: 0 4px 12px rgba(0,0,0,.12); pointer-events: none; display: none; z-index: 1000; min-width: 160px; max-width: 240px; }
+    
   </style>
 </head>
 <body>
@@ -113,7 +132,7 @@
     <h1>WordPress Plugin Keyword Tracker</h1>
     <p>3 plugin(s) tracked · WordPress.org Plugin Directory</p>
   </div>
-  <div class="updated">Last updated<br>2026-04-10 04:50 UTC</div>
+  <div class="updated">Last updated<br>2026-04-10 10:19 UTC</div>
 </header>
 
 <nav class="tab-bar">
@@ -159,6 +178,71 @@
               <div class="label">Behind Competitors</div>
             </div>
           </div>
+
+          
+          <div class="section-title">Position Trends</div>
+          <div class="chart-wrap">
+            <div class="chart-toolbar">
+              <div class="chart-filter" id="filter-0">
+                <button class="filter-btn active" onclick="setFilter(0,'daily',this)">Daily</button>
+                <button class="filter-btn" onclick="setFilter(0,'weekly',this)">Weekly</button>
+                <button class="filter-btn" onclick="setFilter(0,'monthly',this)">Monthly</button>
+              </div>
+            </div>
+            <div style="margin-bottom:28px">
+              <div class="chart-title">Keyword Position Trends</div>
+              <div class="chart-subtitle">Lower position number = better ranking &middot; Showing top keywords by current rank</div>
+              <div class="chart-container">
+                <canvas id="kw-chart-0"></canvas>
+              </div>
+              <div class="chart-legend" id="kw-legend-0"></div>
+            </div>
+            <div>
+              <div class="chart-title">Competitor Comparison</div>
+              <div class="comp-kw-row">
+                <span class="comp-kw-label">Keyword:</span>
+                <select class="kw-select" id="comp-kw-0" onchange="renderCompChart(0)">
+                  <option value="section 508">section 508</option>
+<option value="EAA compliance">EAA compliance</option>
+<option value="accessibility statement generator">accessibility statement generator</option>
+<option value="ada plugin">ada plugin</option>
+<option value="focus indicator">focus indicator</option>
+<option value="accessibility toolbar">accessibility toolbar</option>
+<option value="accessibility checker">accessibility checker</option>
+<option value="accessibility tool">accessibility tool</option>
+<option value="European Accessibility Act">European Accessibility Act</option>
+<option value="accessibility plugin">accessibility plugin</option>
+<option value="wcag plugin">wcag plugin</option>
+<option value="accessibility remediation">accessibility remediation</option>
+<option value="wcag compliance">wcag compliance</option>
+<option value="color contrast plugin">color contrast plugin</option>
+<option value="ada compliance">ada compliance</option>
+<option value="EN 301 549">EN 301 549</option>
+<option value="accessibility statement">accessibility statement</option>
+<option value="accessibility audit">accessibility audit</option>
+<option value="a11y">a11y</option>
+<option value="accessibility scan">accessibility scan</option>
+<option value="web accessibility">web accessibility</option>
+<option value="wp accessibility">wp accessibility</option>
+<option value="ARIA plugin">ARIA plugin</option>
+<option value="wordpress accessibility">wordpress accessibility</option>
+<option value="screen reader plugin">screen reader plugin</option>
+<option value="keyboard navigation plugin">keyboard navigation plugin</option>
+<option value="accessibility issues wordpress">accessibility issues wordpress</option>
+<option value="skip links">skip links</option>
+<option value="alt text plugin">alt text plugin</option>
+<option value="wcag 2.2">wcag 2.2</option>
+<option value="AODA">AODA</option>
+<option value="accessible wordpress">accessible wordpress</option>
+                </select>
+              </div>
+              <div class="chart-container">
+                <canvas id="comp-chart-0"></canvas>
+              </div>
+              <div class="chart-legend" id="comp-legend-0"></div>
+            </div>
+          </div>
+        
 
           <!-- Competitor Comparison -->
           <div class="section-title">Competitor Comparison</div>
@@ -493,6 +577,64 @@
             </div>
           </div>
 
+          
+          <div class="section-title">Position Trends</div>
+          <div class="chart-wrap">
+            <div class="chart-toolbar">
+              <div class="chart-filter" id="filter-1">
+                <button class="filter-btn active" onclick="setFilter(1,'daily',this)">Daily</button>
+                <button class="filter-btn" onclick="setFilter(1,'weekly',this)">Weekly</button>
+                <button class="filter-btn" onclick="setFilter(1,'monthly',this)">Monthly</button>
+              </div>
+            </div>
+            <div style="margin-bottom:28px">
+              <div class="chart-title">Keyword Position Trends</div>
+              <div class="chart-subtitle">Lower position number = better ranking &middot; Showing top keywords by current rank</div>
+              <div class="chart-container">
+                <canvas id="kw-chart-1"></canvas>
+              </div>
+              <div class="chart-legend" id="kw-legend-1"></div>
+            </div>
+            <div>
+              <div class="chart-title">Competitor Comparison</div>
+              <div class="comp-kw-row">
+                <span class="comp-kw-label">Keyword:</span>
+                <select class="kw-select" id="comp-kw-1" onchange="renderCompChart(1)">
+                  <option value="computer vision wordpress">computer vision wordpress</option>
+<option value="alt text generator">alt text generator</option>
+<option value="bulk alt text generator">bulk alt text generator</option>
+<option value="auto generate alt text">auto generate alt text</option>
+<option value="alt text generator free">alt text generator free</option>
+<option value="generate alt text">generate alt text</option>
+<option value="auto alt text">auto alt text</option>
+<option value="bulk alt text">bulk alt text</option>
+<option value="AI alt text">AI alt text</option>
+<option value="missing alt text">missing alt text</option>
+<option value="alt text">alt text</option>
+<option value="AI image alt text">AI image alt text</option>
+<option value="alt text accessibility">alt text accessibility</option>
+<option value="image alt text">image alt text</option>
+<option value="alt text plugin">alt text plugin</option>
+<option value="media library alt text">media library alt text</option>
+<option value="wordpress alt text">wordpress alt text</option>
+<option value="alt text SEO">alt text SEO</option>
+<option value="automatic alt text">automatic alt text</option>
+<option value="image SEO">image SEO</option>
+<option value="OpenAI alt text">OpenAI alt text</option>
+<option value="WooCommerce alt text">WooCommerce alt text</option>
+<option value="AI image description">AI image description</option>
+<option value="image accessibility">image accessibility</option>
+<option value="GPT alt text">GPT alt text</option>
+                </select>
+              </div>
+              <div class="chart-container">
+                <canvas id="comp-chart-1"></canvas>
+              </div>
+              <div class="chart-legend" id="comp-legend-1"></div>
+            </div>
+          </div>
+        
+
           <!-- Competitor Comparison -->
           <div class="section-title">Competitor Comparison</div>
           <div class="table-wrap" style="margin-bottom:28px">
@@ -770,6 +912,64 @@
             </div>
           </div>
 
+          
+          <div class="section-title">Position Trends</div>
+          <div class="chart-wrap">
+            <div class="chart-toolbar">
+              <div class="chart-filter" id="filter-2">
+                <button class="filter-btn active" onclick="setFilter(2,'daily',this)">Daily</button>
+                <button class="filter-btn" onclick="setFilter(2,'weekly',this)">Weekly</button>
+                <button class="filter-btn" onclick="setFilter(2,'monthly',this)">Monthly</button>
+              </div>
+            </div>
+            <div style="margin-bottom:28px">
+              <div class="chart-title">Keyword Position Trends</div>
+              <div class="chart-subtitle">Lower position number = better ranking &middot; Showing top keywords by current rank</div>
+              <div class="chart-container">
+                <canvas id="kw-chart-2"></canvas>
+              </div>
+              <div class="chart-legend" id="kw-legend-2"></div>
+            </div>
+            <div>
+              <div class="chart-title">Competitor Comparison</div>
+              <div class="comp-kw-row">
+                <span class="comp-kw-label">Keyword:</span>
+                <select class="kw-select" id="comp-kw-2" onchange="renderCompChart(2)">
+                  <option value="accessibility overlay">accessibility overlay</option>
+<option value="wcag widget">wcag widget</option>
+<option value="ada compliance widget">ada compliance widget</option>
+<option value="EAA compliance">EAA compliance</option>
+<option value="color contrast tool">color contrast tool</option>
+<option value="WCAG 2.1">WCAG 2.1</option>
+<option value="accessibility widget">accessibility widget</option>
+<option value="accessibility overlay wordpress">accessibility overlay wordpress</option>
+<option value="font size accessibility">font size accessibility</option>
+<option value="ada compliance">ada compliance</option>
+<option value="wcag compliance">wcag compliance</option>
+<option value="web accessibility">web accessibility</option>
+<option value="accessibility statement">accessibility statement</option>
+<option value="web accessibility widget">web accessibility widget</option>
+<option value="EN 301 549">EN 301 549</option>
+<option value="wordpress accessibility widget">wordpress accessibility widget</option>
+<option value="wp accessibility">wp accessibility</option>
+<option value="accessibility plugin">accessibility plugin</option>
+<option value="accessibility toolbar">accessibility toolbar</option>
+<option value="section 508">section 508</option>
+<option value="keyboard navigation">keyboard navigation</option>
+<option value="screen reader">screen reader</option>
+<option value="accessibe alternative">accessibe alternative</option>
+<option value="userway alternative">userway alternative</option>
+<option value="one click accessibility">one click accessibility</option>
+                </select>
+              </div>
+              <div class="chart-container">
+                <canvas id="comp-chart-2"></canvas>
+              </div>
+              <div class="chart-legend" id="comp-legend-2"></div>
+            </div>
+          </div>
+        
+
           <!-- Competitor Comparison -->
           <div class="section-title">Competitor Comparison</div>
           <div class="table-wrap" style="margin-bottom:28px">
@@ -1011,13 +1211,255 @@
         </div>
 </div>
 
+
+<script type="application/json" id="chart-data">{"accessibility-plus": {"dates": ["2026-04-01", "2026-04-06", "2026-04-09", "2026-04-10"], "our_name": "Accessibility Plus", "keywords": {"accessibility plugin": [8, 8, 8, 8], "wordpress accessibility": [23, 25, 24, 24], "web accessibility": [18, 18, 18, 18], "accessibility checker": [7, 6, null, 7], "accessibility tool": [6, 7, 7, 7], "wcag plugin": [8, 8, 8, 8], "wcag compliance": [9, 9, 9, 9], "wcag 2.2": [null, null, null, null], "ada compliance": [9, 10, 10, 10], "ada plugin": [5, 5, 5, 5], "section 508": [2, 2, 2, 2], "EAA compliance": [2, 2, 2, 2], "European Accessibility Act": [7, 7, 7, 7], "EN 301 549": [10, 10, 10, 10], "AODA": [null, null, null, null], "accessibility statement generator": [4, 4, 4, 4], "accessibility statement": [11, 11, 11, 11], "accessibility scan": [17, 17, null, 16], "accessibility audit": [11, 11, 11, 11], "accessibility remediation": [7, 8, 8, 8], "accessibility issues wordpress": [28, 33, 32, 31], "color contrast plugin": [7, 9, null, 9], "alt text plugin": [84, 96, null, 93], "screen reader plugin": [25, 29, 28, 28], "keyboard navigation plugin": [24, 28, null, 28], "skip links": [77, 88, 90, 91], "focus indicator": [4, 6, 6, 5], "accessibility toolbar": [6, 6, 6, 6], "a11y": [8, 10, 11, 11], "wp accessibility": [20, 20, 21, 21], "ARIA plugin": [15, 20, 21, 21], "accessible wordpress": [null, null, null, null]}, "competitors": {"accessibility-checker": {"accessibility plugin": [15, 15, 15, 14], "wordpress accessibility": [9, 9, 9, 9], "web accessibility": [11, 11, 11, 11], "accessibility checker": [1, 1, 1, 1], "accessibility tool": [10, 10, 9, 9], "wcag plugin": [1, 1, 1, 1], "wcag compliance": [1, 1, 1, 1], "wcag 2.2": [1, 1, 1, 1], "ada compliance": [3, 3, 2, 2], "ada plugin": [2, 2, 2, 2], "section 508": [1, 1, null, 1], "EAA compliance": [1, 1, 1, 1], "European Accessibility Act": [4, 4, 4, 4], "EN 301 549": [null, null, null, null], "AODA": [3, 3, 3, 3], "accessibility statement generator": [3, 3, 3, 3], "accessibility statement": [3, 3, 4, 4], "accessibility scan": [8, 8, 8, 8], "accessibility audit": [7, 6, null, 6], "accessibility remediation": [4, 4, 4, 4], "accessibility issues wordpress": [12, 11, 11, 11], "color contrast plugin": [null, null, null, null], "alt text plugin": [null, null, null, null], "screen reader plugin": [null, null, null, null], "keyboard navigation plugin": [null, null, null, null], "skip links": [11, 11, 12, 12], "focus indicator": [null, null, null, null], "accessibility toolbar": [7, 8, 8, 8], "a11y": [null, null, null, null], "wp accessibility": [5, 5, null, 5], "ARIA plugin": [null, null, null, null], "accessible wordpress": [55, 57, 57, 57]}, "wp-accessibility": {"accessibility plugin": [7, 7, 7, 7], "wordpress accessibility": [8, 8, 8, 8], "web accessibility": [null, null, null, null], "accessibility checker": [5, 5, 5, 5], "accessibility tool": [4, 4, 4, 4], "wcag plugin": [22, 22, 22, 22], "wcag compliance": [null, null, null, null], "wcag 2.2": [null, null, null, null], "ada compliance": [null, null, null, null], "ada plugin": [null, null, null, null], "section 508": [null, null, null, null], "EAA compliance": [null, null, null, null], "European Accessibility Act": [null, null, null, null], "EN 301 549": [null, null, null, null], "AODA": [null, null, null, null], "accessibility statement generator": [null, null, null, null], "accessibility statement": [9, 9, 9, 9], "accessibility scan": [null, null, null, null], "accessibility audit": [null, null, null, null], "accessibility remediation": [5, 5, 5, 5], "accessibility issues wordpress": [7, 6, null, 7], "color contrast plugin": [12, 12, 12, 12], "alt text plugin": [36, 36, 38, 38], "screen reader plugin": [null, null, null, null], "keyboard navigation plugin": [null, null, null, null], "skip links": [7, 7, 7, 7], "focus indicator": [25, 24, 23, 22], "accessibility toolbar": [3, 3, 3, 3], "a11y": [4, 4, 5, 5], "wp accessibility": [3, 3, 3, 3], "ARIA plugin": [null, null, null, null], "accessible wordpress": [null, null, null, null]}}, "comp_names": {"accessibility-checker": "Accessibility Checker", "wp-accessibility": "WP Accessibility"}}, "alt-text-generator": {"dates": ["2026-04-01", "2026-04-06", "2026-04-09", "2026-04-10"], "our_name": "Alt Text Generator AI", "keywords": {"alt text generator": [18, 13, 13, 13], "alt text": [45, 35, 37, 37], "image alt text": [58, 55, 56, 56], "AI alt text": [33, 33, null, 34], "generate alt text": [20, 21, 23, 23], "auto alt text": [25, 26, 27, 27], "automatic alt text": [null, null, null, null], "bulk alt text": [26, 27, 28, 27], "bulk alt text generator": [15, 15, 16, 16], "alt text SEO": [72, 69, 72, 73], "image SEO": [null, null, null, null], "AI image alt text": [48, 47, 49, 49], "wordpress alt text": [63, 62, 64, 63], "missing alt text": [43, 31, 35, 36], "alt text accessibility": [51, 49, 51, 51], "OpenAI alt text": [null, null, null, null], "media library alt text": [61, 62, 62, 62], "WooCommerce alt text": [null, null, null, null], "AI image description": [null, null, null, null], "alt text plugin": [60, 58, 60, 60], "image accessibility": [null, null, null, null], "auto generate alt text": [18, 18, 18, 18], "GPT alt text": [null, null, null, null], "computer vision wordpress": [9, 9, 9, 9], "alt text generator free": [20, 20, 20, 20]}, "competitors": {"ai-alt-text-generator": {"alt text generator": [3, 3, 3, 3], "alt text": [12, 12, 12, 12], "image alt text": [28, 27, 28, 28], "AI alt text": [8, 8, null, 9], "generate alt text": [7, 7, 7, 7], "auto alt text": [null, null, null, null], "automatic alt text": [null, null, null, null], "bulk alt text": [12, 13, 13, 13], "bulk alt text generator": [3, 3, 3, 3], "alt text SEO": [18, 17, 18, 18], "image SEO": [null, null, null, null], "AI image alt text": [16, 17, 17, 17], "wordpress alt text": [15, 14, 16, 16], "missing alt text": [null, null, null, null], "alt text accessibility": [null, null, null, null], "OpenAI alt text": [6, 6, 6, 6], "media library alt text": [23, 27, 26, 24], "WooCommerce alt text": [null, null, null, null], "AI image description": [68, 71, 74, 74], "alt text plugin": [15, 15, 16, 15], "image accessibility": [null, null, null, null], "auto generate alt text": [null, null, null, null], "GPT alt text": [5, 5, 5, 5], "computer vision wordpress": [null, null, null, null], "alt text generator free": [null, null, null, null]}, "ai-image-alt-text-generator-for-wp": {"alt text generator": [2, 2, 2, 2], "alt text": [11, 11, null, 11], "image alt text": [7, 7, 7, 7], "AI alt text": [9, 9, 8, 8], "generate alt text": [8, 8, 8, 8], "auto alt text": [null, null, null, null], "automatic alt text": [8, 8, 8, 8], "bulk alt text": [9, 9, 9, 9], "bulk alt text generator": [2, 2, 2, 2], "alt text SEO": [16, 15, 15, 15], "image SEO": [82, 82, 84, 85], "AI image alt text": [10, 10, 9, 9], "wordpress alt text": [13, 13, 13, 13], "missing alt text": [null, null, null, null], "alt text accessibility": [18, 18, 18, 18], "OpenAI alt text": [null, null, null, null], "media library alt text": [null, null, null, null], "WooCommerce alt text": [9, 8, 8, 8], "AI image description": [35, 35, 36, 36], "alt text plugin": [14, 14, 14, 14], "image accessibility": [71, 70, 69, 70], "auto generate alt text": [null, null, null, null], "GPT alt text": [null, null, null, null], "computer vision wordpress": [null, null, null, null], "alt text generator free": [2, 2, 2, 2]}, "alt-text-generator-gpt-vision": {"alt text generator": [4, 4, 4, 4], "alt text": [15, 15, null, 15], "image alt text": [10, 10, 10, 10], "AI alt text": [18, 16, 16, 16], "generate alt text": [9, 10, null, 10], "auto alt text": [null, null, null, null], "automatic alt text": [7, 6, 6, 6], "bulk alt text": [11, 11, null, 11], "bulk alt text generator": [5, 5, 6, 6], "alt text SEO": [27, 26, 25, 24], "image SEO": [null, null, null, null], "AI image alt text": [13, 13, 13, 13], "wordpress alt text": [23, 21, 21, 21], "missing alt text": [null, null, null, null], "alt text accessibility": [21, 21, 22, 22], "OpenAI alt text": [4, 4, 4, 4], "media library alt text": [28, 29, 29, 28], "WooCommerce alt text": [null, null, null, null], "AI image description": [45, 44, 46, 46], "alt text plugin": [21, 19, 19, 19], "image accessibility": [68, 69, 67, 68], "auto generate alt text": [null, null, null, null], "GPT alt text": [4, 4, 4, 4], "computer vision wordpress": [null, null, null, null], "alt text generator free": [null, null, null, null]}}, "comp_names": {"ai-alt-text-generator": "AI Alt Text Generator", "ai-image-alt-text-generator-for-wp": "AI Image Alt Text for WP", "alt-text-generator-gpt-vision": "Alt Text GPT Vision"}}, "accessibility-widget": {"dates": ["2026-04-01", "2026-04-06", "2026-04-09", "2026-04-10"], "our_name": "AccessYes Accessibility Widget", "keywords": {"accessibility widget": [5, 5, 6, 5], "wordpress accessibility widget": [11, 11, 11, 11], "accessibility overlay": [2, 2, 2, 2], "accessibility overlay wordpress": [7, 6, 6, 6], "web accessibility widget": [8, 9, 9, 9], "ada compliance widget": [4, 4, 4, 4], "wcag widget": [3, 2, 3, 3], "accessibility toolbar": [null, null, null, null], "accessibility plugin": [26, 26, 26, 26], "ada compliance": [8, 8, 8, 8], "wcag compliance": [8, 8, null, 8], "EAA compliance": [4, 4, 4, 4], "section 508": [null, null, null, null], "web accessibility": [7, 7, 8, 8], "wp accessibility": [15, 15, 14, 13], "color contrast tool": [5, 4, 4, 4], "font size accessibility": [8, 7, 7, 7], "keyboard navigation": [null, null, null, null], "screen reader": [null, null, null, null], "accessibility statement": [7, 7, 8, 8], "accessibe alternative": [null, null, null, null], "userway alternative": [null, null, null, null], "one click accessibility": [null, null, null, null], "WCAG 2.1": [4, 4, 4, 4], "EN 301 549": [9, 9, 9, 9]}, "competitors": {"accessibe": {"accessibility widget": [null, null, null, null], "wordpress accessibility widget": [null, null, null, null], "accessibility overlay": [null, null, null, null], "accessibility overlay wordpress": [null, null, null, null], "web accessibility widget": [null, null, null, null], "ada compliance widget": [null, null, null, null], "wcag widget": [null, null, null, null], "accessibility toolbar": [null, null, null, null], "accessibility plugin": [13, 13, 13, 13], "ada compliance": [11, 11, 11, 11], "wcag compliance": [31, 31, null, 30], "EAA compliance": [10, 10, 10, 10], "section 508": [null, null, null, null], "web accessibility": [3, 3, 3, 3], "wp accessibility": [null, null, null, null], "color contrast tool": [null, null, null, null], "font size accessibility": [7, 6, 6, 6], "keyboard navigation": [null, null, null, null], "screen reader": [20, 20, 21, 21], "accessibility statement": [14, 14, 14, 14], "accessibe alternative": [null, null, null, null], "userway alternative": [null, null, null, null], "one click accessibility": [null, null, null, null], "WCAG 2.1": [null, null, null, null], "EN 301 549": [null, null, null, null]}, "accessibility-onetap": {"accessibility widget": [1, 1, 1, 1], "wordpress accessibility widget": [1, 1, 1, 1], "accessibility overlay": [null, null, null, null], "accessibility overlay wordpress": [null, null, null, null], "web accessibility widget": [1, 1, 1, 1], "ada compliance widget": [5, 5, 5, 5], "wcag widget": [2, 1, 2, 2], "accessibility toolbar": [1, 1, 1, 1], "accessibility plugin": [1, 1, 1, 1], "ada compliance": [14, 14, null, 15], "wcag compliance": [17, 17, 17, 17], "EAA compliance": [17, 17, 16, 16], "section 508": [null, null, null, null], "web accessibility": [2, 2, 2, 2], "wp accessibility": [1, 2, 2, 2], "color contrast tool": [1, 1, 1, 1], "font size accessibility": [1, 1, 1, 1], "keyboard navigation": [7, 8, 8, 8], "screen reader": [null, null, null, null], "accessibility statement": [2, 2, 2, 2], "accessibe alternative": [null, null, null, null], "userway alternative": [null, null, null, null], "one click accessibility": [1, 1, 1, 1], "WCAG 2.1": [null, null, null, null], "EN 301 549": [null, null, null, null]}, "userway-accessibility-widget": {"accessibility widget": [2, 2, 2, 2], "wordpress accessibility widget": [10, 10, 10, 9], "accessibility overlay": [null, null, null, null], "accessibility overlay wordpress": [null, null, null, null], "web accessibility widget": [6, 7, 7, 7], "ada compliance widget": [7, 7, 7, 7], "wcag widget": [7, 7, 7, 7], "accessibility toolbar": [null, null, null, null], "accessibility plugin": [6, 6, 6, 6], "ada compliance": [10, 9, 9, 9], "wcag compliance": [12, 12, 13, 13], "EAA compliance": [3, 3, 3, 3], "section 508": [3, 3, 3, 3], "web accessibility": [4, 4, 4, 4], "wp accessibility": [8, 8, 9, 9], "color contrast tool": [null, null, null, null], "font size accessibility": [null, null, null, null], "keyboard navigation": [28, 28, 29, 28], "screen reader": [null, null, null, null], "accessibility statement": [null, null, null, null], "accessibe alternative": [null, null, null, null], "userway alternative": [null, null, null, null], "one click accessibility": [null, null, null, null], "WCAG 2.1": [3, 3, 3, 3], "EN 301 549": [1, 1, 1, 1]}}, "comp_names": {"accessibe": "accessiBe", "accessibility-onetap": "Accessibility OneTap", "userway-accessibility-widget": "UserWay"}}}</script>
+<div id="chart-tooltip"></div>
 <script>
+const CHART_DATA = JSON.parse(document.getElementById('chart-data').textContent);
+const COLORS = ['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#0284c7','#9333ea','#0d9488'];
+const tabFilters = {};
+const chartState = {};
+
+function getISOWeek(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return d.getUTCFullYear() + '-W' + String(Math.ceil(((d - ys) / 86400000 + 1) / 7)).padStart(2, '0');
+}
+
+function filterDates(dates, mode) {
+  if (!dates || !dates.length) return [];
+  if (mode === 'daily') return dates;
+  const last = {};
+  for (const d of dates) {
+    const key = mode === 'weekly' ? getISOWeek(d) : d.substring(0, 7);
+    last[key] = d;
+  }
+  return Object.values(last).sort();
+}
+
+function drawChart(canvasId, series, labels) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  const dpr  = window.devicePixelRatio || 1;
+  const W    = wrap.clientWidth || 700;
+  const H    = 300;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { top: 20, right: 20, bottom: 44, left: 50 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  const allVals = series.flatMap(s => s.values.filter(v => v != null));
+  if (!allVals.length) {
+    ctx.fillStyle = '#94a3b8'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No data yet', W / 2, H / 2); return;
+  }
+
+  const dataMin = Math.max(1, Math.min(...allVals));
+  const dataMax = Math.max(...allVals);
+  const spread  = Math.max(dataMax - dataMin, 1);
+  const yMin    = Math.max(1, dataMin - Math.ceil(spread * 0.08));
+  const yMax    = dataMax + Math.ceil(spread * 0.08);
+  const yRange  = yMax - yMin || 1;
+
+  const toX = i => labels.length > 1 ? pad.left + (i / (labels.length - 1)) * plotW : pad.left + plotW / 2;
+  const toY = v => pad.top + ((v - yMin) / yRange) * plotH;
+
+  chartState[canvasId] = { series, labels, pad, W, H, plotW, plotH, toX, toY, yMin, yMax, yRange };
+
+  // Grid
+  ctx.lineWidth = 1;
+  const nGrid = 5;
+  for (let i = 0; i <= nGrid; i++) {
+    const val = yMin + (yRange * i / nGrid);
+    const y   = toY(val);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('#' + Math.round(val), pad.left - 6, y + 3);
+  }
+
+  // X labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  const maxLbls = Math.floor(plotW / 56);
+  const step    = Math.max(1, Math.ceil(labels.length / maxLbls));
+  const drawn   = new Set();
+  for (let i = 0; i < labels.length; i += step) {
+    ctx.fillText(labels[i].substring(5), toX(i), H - pad.bottom + 16); drawn.add(i);
+  }
+  const last = labels.length - 1;
+  if (!drawn.has(last)) ctx.fillText(labels[last].substring(5), toX(last), H - pad.bottom + 16);
+
+  // Axes
+  ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH);
+  ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.stroke();
+
+  // Series lines + dots
+  for (const s of series) {
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.lineWidth || 2; ctx.setLineDash([]);
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < s.values.length; i++) {
+      if (s.values[i] == null) { started = false; continue; }
+      const x = toX(i), y = toY(s.values[i]);
+      started ? ctx.lineTo(x, y) : ctx.moveTo(x, y); started = true;
+    }
+    ctx.stroke();
+    for (let i = 0; i < s.values.length; i++) {
+      if (s.values[i] == null) continue;
+      ctx.fillStyle = s.color; ctx.beginPath();
+      ctx.arc(toX(i), toY(s.values[i]), s.dotR || 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+function buildLegend(id, series) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = series.map(s =>
+    '<span class="legend-item">' +
+    '<span class="legend-swatch" style="background:' + s.color + '"></span>' +
+    s.name + '</span>'
+  ).join('');
+}
+
+function getSlugForTab(idx) { return Object.keys(CHART_DATA)[idx]; }
+
+function getFilteredValues(rawValues, allDates, filteredDates) {
+  const idx = {};
+  allDates.forEach((d, i) => idx[d] = i);
+  return filteredDates.map(d => { const v = rawValues[idx[d]]; return (v == null) ? null : v; });
+}
+
+function renderKwChart(tabIdx) {
+  const slug = getSlugForTab(tabIdx);
+  const d    = CHART_DATA[slug];
+  const mode = tabFilters[tabIdx] || 'daily';
+  const fd   = filterDates(d.dates, mode);
+
+  // Sort keywords by best current position
+  const kws = Object.keys(d.keywords).sort((a, b) => {
+    const av = [...d.keywords[a]].reverse().find(v => v != null) || 9999;
+    const bv = [...d.keywords[b]].reverse().find(v => v != null) || 9999;
+    return av - bv;
+  }).slice(0, 12);
+
+  const series = kws.map((kw, i) => ({
+    name: kw, color: COLORS[i % COLORS.length],
+    values: getFilteredValues(d.keywords[kw], d.dates, fd)
+  }));
+
+  drawChart('kw-chart-' + tabIdx, series, fd);
+  buildLegend('kw-legend-' + tabIdx, series);
+  setupHover('kw-chart-' + tabIdx);
+}
+
+function renderCompChart(tabIdx) {
+  const slug = getSlugForTab(tabIdx);
+  const d    = CHART_DATA[slug];
+  const mode = tabFilters[tabIdx] || 'daily';
+  const fd   = filterDates(d.dates, mode);
+  const sel  = document.getElementById('comp-kw-' + tabIdx);
+  const kw   = sel ? sel.value : Object.keys(d.keywords)[0];
+
+  const series = [{ name: d.our_name, color: COLORS[0], lineWidth: 2.5, dotR: 4,
+    values: getFilteredValues(d.keywords[kw], d.dates, fd) }];
+
+  Object.entries(d.competitors).forEach(([cSlug, kwMap], i) => {
+    series.push({ name: d.comp_names[cSlug], color: COLORS[i + 1],
+      values: getFilteredValues(kwMap[kw] || [], d.dates, fd) });
+  });
+
+  drawChart('comp-chart-' + tabIdx, series, fd);
+  buildLegend('comp-legend-' + tabIdx, series);
+  setupHover('comp-chart-' + tabIdx);
+}
+
+function setupHover(canvasId) {
+  const canvas  = document.getElementById(canvasId);
+  const tooltip = document.getElementById('chart-tooltip');
+  if (!canvas || !tooltip) return;
+  canvas.onmousemove = (e) => {
+    const st = chartState[canvasId];
+    if (!st) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx   = e.clientX - rect.left;
+    let nearIdx = 0, minDist = Infinity;
+    for (let i = 0; i < st.labels.length; i++) {
+      const dist = Math.abs(mx - st.toX(i));
+      if (dist < minDist) { minDist = dist; nearIdx = i; }
+    }
+    if (minDist > 50) { tooltip.style.display = 'none'; return; }
+
+    // Redraw with vertical guide line
+    drawChart(canvasId, st.series, st.labels);
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    ctx.save(); ctx.scale(dpr, dpr);
+    ctx.strokeStyle = 'rgba(100,116,139,.35)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(st.toX(nearIdx), st.pad.top);
+    ctx.lineTo(st.toX(nearIdx), st.pad.top + st.plotH);
+    ctx.stroke(); ctx.restore();
+
+    // Tooltip
+    const date = st.labels[nearIdx];
+    let html = '<div style="font-weight:600;margin-bottom:5px;font-size:.75rem;color:#1e293b">' + date + '</div>';
+    for (const s of st.series) {
+      const v   = s.values[nearIdx];
+      const str = v != null ? '#' + v : '—';
+      html += '<div style="display:flex;align-items:center;gap:6px;padding:1px 0;font-size:.73rem">' +
+        '<span style="width:8px;height:8px;border-radius:50%;background:' + s.color + ';display:inline-block;flex-shrink:0"></span>' +
+        '<span style="color:#64748b;flex:1">' + s.name + '</span>' +
+        '<span style="font-weight:600;color:#1e293b">' + str + '</span></div>';
+    }
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+    const tw = 200, vpW = window.innerWidth;
+    tooltip.style.left = (e.clientX + 16 + tw > vpW ? e.clientX - tw - 12 : e.clientX + 16) + 'px';
+    tooltip.style.top  = (e.clientY - 10) + 'px';
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+}
+
+function renderCharts(tabIdx) {
+  renderKwChart(tabIdx);
+  renderCompChart(tabIdx);
+}
+
+function setFilter(tabIdx, mode, btn) {
+  tabFilters[tabIdx] = mode;
+  document.getElementById('filter-' + tabIdx).querySelectorAll('.filter-btn')
+    .forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCharts(tabIdx);
+}
+
 function showTab(idx, btn) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + idx).classList.add('active');
   btn.classList.add('active');
+  renderCharts(idx);
 }
+
+window.addEventListener('load', () => renderCharts(0));
+window.addEventListener('resize', () => {
+  const active = document.querySelector('.tab-content.active');
+  if (active) renderCharts(parseInt(active.id.split('-')[1]));
+});
 </script>
+
 </body>
 </html>
