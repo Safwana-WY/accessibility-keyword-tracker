@@ -44,13 +44,25 @@ git push
 
 Never leave changes uncommitted or unpushed at the end of a session. The GitHub Pages dashboard (`index.html`) is served directly from `main`, so changes only go live once pushed.
 
-## Daily automation (cron at 10am IST)
+## Daily automation (launchd at 10am IST)
 
-```
-0 10 * * * cd /Users/safwanata/Desktop/ClaudeProjects/accessibility-keyword-tracker && /usr/bin/python3 tracker.py >> data/tracker.log 2>&1 && git add index.html data/positions.json && git commit -m "Daily update $(date +\%Y-\%m-\%d)" && git push >> data/tracker.log 2>&1
+Managed by launchd (not cron). Unlike cron, launchd will run the missed job the next time the Mac wakes up if it was asleep at 10am.
+
+Plist: `~/Library/LaunchAgents/com.webtoffee.accessibility-tracker.plist`
+
+```bash
+# Check agent is loaded
+launchctl list | grep webtoffee
+
+# Reload after editing the plist
+launchctl unload ~/Library/LaunchAgents/com.webtoffee.accessibility-tracker.plist
+launchctl load   ~/Library/LaunchAgents/com.webtoffee.accessibility-tracker.plist
+
+# Trigger a manual run immediately
+launchctl start com.webtoffee.accessibility-tracker
 ```
 
-Cron is registered on the local machine. The Mac must be on and awake at 10am IST for it to run. Check `data/tracker.log` to confirm runs are succeeding.
+Check `data/tracker.log` to confirm runs are succeeding.
 
 ## Architecture
 
