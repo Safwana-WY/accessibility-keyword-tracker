@@ -555,7 +555,7 @@ def generate_dashboard(data, config):
 
         </div>"""
 
-    last_updated    = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    last_updated    = (datetime.utcnow() + timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d %H:%M IST")
     plugin_count    = len(plugins)
     chart_data_json = json.dumps(all_chart_data)
 
