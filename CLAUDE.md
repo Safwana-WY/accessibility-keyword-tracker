@@ -62,13 +62,35 @@ launchctl load   ~/Library/LaunchAgents/com.webtoffee.accessibility-tracker.plis
 launchctl start com.webtoffee.accessibility-tracker
 ```
 
-Check `data/tracker.log` to confirm runs are succeeding.
+Check `data/tracker.log` to confirm runs are succeeding. A successful run ends with `main -> main`.
+
+### SSH setup for git push (one-time)
+
+launchd runs without a shell environment, so `git push` requires SSH auth to work without an agent. This has been configured:
+
+- `~/.ssh/config` — sets `UseKeychain yes` and `AddKeysToAgent yes` for `github.com`
+- SSH key (`~/.ssh/id_ed25519`) added to macOS Keychain via `ssh-add --apple-use-keychain`
+
+If re-setting up on a new machine, run:
+
+```bash
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+```
+
+And ensure `~/.ssh/config` contains:
+
+```
+Host github.com
+    IdentityFile ~/.ssh/id_ed25519
+    UseKeychain yes
+    AddKeysToAgent yes
+```
 
 ## Architecture
 
 **`tracker.py`** — single-file Python script with four responsibilities:
 1. `run_check()` — loops over all plugins in config, queries `https://api.wordpress.org/plugins/info/1.2/` for each keyword × slug, records 1-indexed positions; also calls `fetch_installs()` per slug
-2. `generate_dashboard()` — writes `index.html` as a self-contained tabbed static page (one tab per plugin, no external dependencies). Each tab includes: stat cards, position trend charts (keyword trends + competitor comparison), competitor comparison table, and full keyword history table.
+2. `generate_dashboard()` — writes `index.html` as a self-contained tabbed static page (one tab per plugin, no external dependencies). Each tab includes: stat cards, position trend charts (keyword trends + competitor comparison), competitor comparison table, and full keyword history table. The "Last updated" timestamp in the header is shown in IST (UTC+5:30).
 3. `send_slack()` — posts a Block Kit message covering all plugins: installs, changes, competitor wins/losses
 4. `send_email()` — optional HTML email alert (disabled by default)
 
