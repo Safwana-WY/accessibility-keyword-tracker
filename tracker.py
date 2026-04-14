@@ -131,17 +131,23 @@ def check_position(keyword, slug, per_page=100, delay=1.5):
 
 
 def fetch_installs(slug, delay=1.0):
-    """Return active_installs integer for slug from WP.org Plugin API."""
+    """Return (active_installs, rating_out_of_5, num_ratings) from WP.org Plugin API."""
     url = "https://api.wordpress.org/plugins/info/1.2/"
-    params = {"action": "plugin_information", "slug": slug, "fields[active_installs]": 1}
+    params = {"action": "plugin_information", "slug": slug,
+              "fields[active_installs]": 1, "fields[ratings]": 1}
     try:
         time.sleep(delay)
         resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
-        return resp.json().get("active_installs")
+        info = resp.json()
+        installs    = info.get("active_installs")
+        raw_rating  = info.get("rating")       # 0–100
+        num_ratings = info.get("num_ratings")
+        rating = round(raw_rating / 20, 1) if isinstance(raw_rating, (int, float)) else None
+        return installs, rating, num_ratings
     except Exception as exc:
         print(f"    [ERROR] installs '{slug}': {exc}")
-        return None
+        return None, None, None
 
 
 # ---------------------------------------------------------------------------
@@ -203,12 +209,15 @@ def run_check(config):
                 if isinstance(prev, int) and isinstance(current, int) and prev != current:
                     changes.append({"keyword": keyword, "prev": prev, "current": current})
 
-        # Fetch active installs for all slugs
-        print(f"\n  Fetching active installs...")
+        # Fetch active installs + rating for all slugs
+        print(f"\n  Fetching active installs and ratings...")
         for slug in all_slugs:
-            installs = fetch_installs(slug, delay=delay)
-            data[today][slug]["_installs"] = installs
-            print(f"    {slug:<40}  {format_installs(installs)}")
+            installs, rating, num_ratings = fetch_installs(slug, delay=delay)
+            data[today][slug]["_installs"]    = installs
+            data[today][slug]["_rating"]      = rating
+            data[today][slug]["_num_ratings"] = num_ratings
+            print(f"    {slug:<40}  {format_installs(installs)}"
+                  + (f"  ★{rating} ({num_ratings} ratings)" if rating else ""))
 
         all_changes[p_slug] = changes
         print(f"\n  {len(changes)} position change(s) for '{p_slug}'.")
@@ -223,61 +232,63 @@ def run_check(config):
 # ---------------------------------------------------------------------------
 
 def generate_dashboard(data, config):
-    plugins = config["plugins"]
-    dates   = sorted(data.keys())
-    today   = dates[-1] if dates else None
+    plugins        = config["plugins"]
+    dates          = sorted(data.keys())
+    today          = dates[-1] if dates else None
     yesterday      = dates[-2] if len(dates) >= 2 else None
     last_week_date = find_last_week_date(dates, today) if today else None
 
-    tabs_html      = ""
-    content_html   = ""
-    all_chart_data = {}
+    tabs_html    = ""
+    content_html = ""
 
     for p_idx, plugin_cfg in enumerate(plugins):
         p_slug      = plugin_cfg["slug"]
         p_name      = plugin_cfg.get("name", p_slug)
         keywords    = plugin_cfg.get("keywords", [])
         competitors = plugin_cfg.get("competitors", [])
-        comp_slugs  = [c["slug"] for c in competitors]
-        all_slugs   = [p_slug] + comp_slugs
 
-        our_raw   = data[today].get(p_slug, {}) if today else {}
-        our_kws   = keyword_positions(our_raw)
-        our_inst  = our_raw.get("_installs")
+        our_raw      = data[today].get(p_slug, {}) if today else {}
+        our_kws      = keyword_positions(our_raw)
+        our_inst     = our_raw.get("_installs")
+        our_rating   = our_raw.get("_rating")
+        our_reviews  = our_raw.get("_num_ratings")
 
         prev_raw  = data[yesterday].get(p_slug, {}) if yesterday else {}
         prev_inst = prev_raw.get("_installs")
 
-        lw_raw  = data[last_week_date].get(p_slug, {}) if last_week_date else {}
-        lw_kws  = keyword_positions(lw_raw)
+        lw_raw = data[last_week_date].get(p_slug, {}) if last_week_date else {}
+        lw_kws = keyword_positions(lw_raw)
 
-        # ── Stats ──────────────────────────────────────────────────────────
-        ranking    = [v for v in our_kws.values() if isinstance(v, int)]
-        top10      = sum(1 for v in ranking if v <= 10)
-        top30      = sum(1 for v in ranking if v <= 30)
+        # ── Top 10 keywords ────────────────────────────────────────────────
+        top10_kws = sorted(
+            [(kw, v) for kw, v in our_kws.items() if isinstance(v, int) and v <= 10],
+            key=lambda x: x[1]
+        )
+        lw_top10_count = sum(1 for v in lw_kws.values() if isinstance(v, int) and v <= 10)
 
-        lw_ranking = sum(1 for v in lw_kws.values() if isinstance(v, int))
-        lw_top10   = sum(1 for v in lw_kws.values() if isinstance(v, int) and v <= 10)
-        lw_top30   = sum(1 for v in lw_kws.values() if isinstance(v, int) and v <= 30)
-        not_rank = sum(1 for k in keywords if not isinstance(our_kws.get(k), int))
+        # ── Keywords #11–20 ────────────────────────────────────────────────
+        pos11_20_kws = sorted(
+            [(kw, v) for kw, v in our_kws.items() if isinstance(v, int) and 11 <= v <= 20],
+            key=lambda x: x[1]
+        )
+        lw_pos11_20_count = sum(1 for v in lw_kws.values() if isinstance(v, int) and 11 <= v <= 20)
 
-        beating = losing = 0
-        for kw in keywords:
-            our = our_kws.get(kw)
-            if not isinstance(our, int):
-                continue
-            comp_pos = [
-                keyword_positions(data[today].get(c, {})).get(kw)
-                for c in comp_slugs
-                if isinstance(keyword_positions(data[today].get(c, {})).get(kw), int)
-            ] if today else []
-            if comp_pos:
-                if our < min(comp_pos):
-                    beating += 1
-                elif our > min(comp_pos):
-                    losing += 1
+        # ── WoW improved / declined ────────────────────────────────────────
+        improved_kws = []
+        declined_kws = []
+        if last_week_date:
+            for kw in keywords:
+                curr   = our_kws.get(kw)
+                lw_pos = lw_kws.get(kw)
+                if isinstance(curr, int) and isinstance(lw_pos, int):
+                    if curr < lw_pos:
+                        improved_kws.append((kw, lw_pos, curr))
+                    elif curr > lw_pos:
+                        declined_kws.append((kw, lw_pos, curr))
+        improved_kws.sort(key=lambda x: x[2])   # best position first
+        declined_kws.sort(key=lambda x: -x[2])  # worst position first
 
-        # Installs trend
+        # ── Active installs trend ──────────────────────────────────────────
         if isinstance(our_inst, int) and isinstance(prev_inst, int):
             inst_delta = our_inst - prev_inst
             if inst_delta > 0:
@@ -289,9 +300,134 @@ def generate_dashboard(data, config):
         else:
             inst_trend = ""
 
-        wow_ranking_html = wow_trend(len(ranking), lw_ranking)
-        wow_top10_html   = wow_trend(top10, lw_top10)
-        wow_top30_html   = wow_trend(top30, lw_top30)
+        # ── Top 10 WoW label ───────────────────────────────────────────────
+        if last_week_date:
+            top10_delta = len(top10_kws) - lw_top10_count
+            if top10_delta > 0:
+                top10_wow = f'<span style="color:#16a34a;font-size:.75rem">▲ +{top10_delta} vs last week</span>'
+            elif top10_delta < 0:
+                top10_wow = f'<span style="color:#dc2626;font-size:.75rem">▼ {abs(top10_delta)} vs last week</span>'
+            else:
+                top10_wow = '<span style="color:#94a3b8;font-size:.75rem">→ same vs last week</span>'
+        else:
+            top10_wow = ""
+
+        # ── #11–20 WoW label ───────────────────────────────────────────────
+        if last_week_date:
+            pos11_20_delta = len(pos11_20_kws) - lw_pos11_20_count
+            if pos11_20_delta > 0:
+                pos11_20_wow = f'<span style="color:#16a34a;font-size:.75rem">▲ +{pos11_20_delta} vs last week</span>'
+            elif pos11_20_delta < 0:
+                pos11_20_wow = f'<span style="color:#dc2626;font-size:.75rem">▼ {abs(pos11_20_delta)} vs last week</span>'
+            else:
+                pos11_20_wow = '<span style="color:#94a3b8;font-size:.75rem">→ same vs last week</span>'
+        else:
+            pos11_20_wow = ""
+
+        # ── Reviews / rating display ───────────────────────────────────────
+        rating_display  = f"{our_rating:.1f}" if isinstance(our_rating, float) else "—"
+        reviews_display = f"{our_reviews:,}" if isinstance(our_reviews, int) else "—"
+        wp_reviews_url  = f"https://wordpress.org/plugins/{p_slug}/#reviews"
+
+        # ── Top 10 panel content ───────────────────────────────────────────
+        if top10_kws:
+            top10_rows = ""
+            for kw, pos in top10_kws:
+                lw_p = lw_kws.get(kw)
+                if isinstance(lw_p, int):
+                    d = lw_p - pos
+                    if d > 0:
+                        wow = f'<span style="color:#16a34a">▲ +{d}</span>'
+                    elif d < 0:
+                        wow = f'<span style="color:#dc2626">▼ {abs(d)}</span>'
+                    else:
+                        wow = '<span style="color:#94a3b8">→</span>'
+                else:
+                    wow = '<span style="color:#94a3b8">—</span>'
+                top10_rows += (
+                    f'<tr>'
+                    f'<td style="padding:8px 16px;font-weight:500">{kw}</td>'
+                    f'<td style="padding:8px 16px;font-weight:700;color:#16a34a">#{pos}</td>'
+                    f'<td style="padding:8px 16px">{wow}</td>'
+                    f'</tr>'
+                )
+            top10_panel_body = f"""<table style="width:100%;border-collapse:collapse">
+              <thead><tr style="background:#f8fafc">
+                <th style="padding:8px 16px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Keyword</th>
+                <th style="padding:8px 16px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Position</th>
+                <th style="padding:8px 16px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;border-bottom:1px solid #e2e8f0">vs Last Week</th>
+              </tr></thead>
+              <tbody>{top10_rows}</tbody>
+            </table>"""
+        else:
+            top10_panel_body = '<p style="padding:20px;color:#94a3b8;text-align:center;font-size:.85rem">No keywords ranking in top 10</p>'
+
+        # ── #11–20 panel content ───────────────────────────────────────────
+        if pos11_20_kws:
+            pos11_20_rows = ""
+            for kw, pos in pos11_20_kws:
+                lw_p = lw_kws.get(kw)
+                if isinstance(lw_p, int):
+                    d = lw_p - pos
+                    if d > 0:
+                        wow = f'<span style="color:#16a34a">▲ +{d}</span>'
+                    elif d < 0:
+                        wow = f'<span style="color:#dc2626">▼ {abs(d)}</span>'
+                    else:
+                        wow = '<span style="color:#94a3b8">→</span>'
+                else:
+                    wow = '<span style="color:#94a3b8">—</span>'
+                pos11_20_rows += (
+                    f'<tr>'
+                    f'<td style="padding:8px 16px;font-weight:500">{kw}</td>'
+                    f'<td style="padding:8px 16px;font-weight:700;color:#2563eb">#{pos}</td>'
+                    f'<td style="padding:8px 16px">{wow}</td>'
+                    f'</tr>'
+                )
+            pos11_20_panel_body = f"""<table style="width:100%;border-collapse:collapse">
+              <thead><tr style="background:#f8fafc">
+                <th style="padding:8px 16px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Keyword</th>
+                <th style="padding:8px 16px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;border-bottom:1px solid #e2e8f0">Position</th>
+                <th style="padding:8px 16px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;border-bottom:1px solid #e2e8f0">vs Last Week</th>
+              </tr></thead>
+              <tbody>{pos11_20_rows}</tbody>
+            </table>"""
+        else:
+            pos11_20_panel_body = '<p style="padding:20px;color:#94a3b8;text-align:center;font-size:.85rem">No keywords ranking in positions 11–20</p>'
+
+        # ── WoW highlight box ──────────────────────────────────────────────
+        if not last_week_date:
+            wow_box = (
+                '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;'
+                'padding:20px;margin-bottom:28px;text-align:center;color:#94a3b8;font-size:.85rem">'
+                'Not enough data for week-on-week comparison (need 7 days of history)</div>'
+            )
+        else:
+            improved_items = "".join(
+                f'<li>{kw} <span style="color:#94a3b8;font-size:.8rem">#{pp} → <strong style="color:#16a34a">#{cp}</strong></span></li>'
+                for kw, pp, cp in improved_kws
+            ) or '<li style="color:#94a3b8;font-size:.85rem">No improvements this week</li>'
+
+            declined_items = "".join(
+                f'<li>{kw} <span style="color:#94a3b8;font-size:.8rem">#{pp} → <strong style="color:#dc2626">#{cp}</strong></span></li>'
+                for kw, pp, cp in declined_kws
+            ) or '<li style="color:#94a3b8;font-size:.85rem">No declines this week</li>'
+
+            wow_box = f"""<div class="wow-box">
+            <div class="wow-col">
+              <div class="wow-section-title" style="color:#16a34a">
+                <span class="wow-count">{len(improved_kws)}</span> Keywords Improved
+              </div>
+              <ul class="wow-list">{improved_items}</ul>
+            </div>
+            <div class="wow-divider"></div>
+            <div class="wow-col">
+              <div class="wow-section-title" style="color:#dc2626">
+                <span class="wow-count">{len(declined_kws)}</span> Keywords Declined
+              </div>
+              <ul class="wow-list">{declined_items}</ul>
+            </div>
+          </div>"""
 
         # ── Sort keywords ──────────────────────────────────────────────────
         def sort_key(kw):
@@ -299,145 +435,18 @@ def generate_dashboard(data, config):
             return (0, pos) if isinstance(pos, int) else (1, 9999)
         sorted_kws = sorted(keywords, key=sort_key)
 
-        # ── Chart data ─────────────────────────────────────────────────────
-        all_chart_data[p_slug] = {
-            "dates":    dates,
-            "our_name": p_name,
-            "keywords": {
-                kw: [keyword_positions(data[d].get(p_slug, {})).get(kw) for d in dates]
-                for kw in keywords
-            },
-            "competitors": {
-                comp["slug"]: {
-                    kw: [keyword_positions(data[d].get(comp["slug"], {})).get(kw) for d in dates]
-                    for kw in keywords
-                }
-                for comp in competitors
-            },
-            "comp_names": {comp["slug"]: comp["name"] for comp in competitors},
-        }
-
-        comp_kw_options = "\n".join(
-            f'<option value="{kw}">{kw}</option>' for kw in sorted_kws
-        )
-        chart_section = f"""
-          <div class="section-title">Position Trends</div>
-          <div class="chart-wrap">
-            <div class="chart-toolbar">
-              <div class="chart-filter" id="filter-{p_idx}">
-                <button class="filter-btn active" onclick="setFilter({p_idx},'daily',this)">Daily</button>
-                <button class="filter-btn" onclick="setFilter({p_idx},'weekly',this)">Weekly</button>
-                <button class="filter-btn" onclick="setFilter({p_idx},'monthly',this)">Monthly</button>
-              </div>
-            </div>
-            <div style="margin-bottom:28px">
-              <div class="chart-title">Keyword Position Trends</div>
-              <div class="chart-subtitle">Lower position number = better ranking &middot; Showing top keywords by current rank</div>
-              <div class="chart-container">
-                <canvas id="kw-chart-{p_idx}"></canvas>
-              </div>
-              <div class="chart-legend" id="kw-legend-{p_idx}"></div>
-            </div>
-            <div>
-              <div class="chart-title">Competitor Comparison</div>
-              <div class="comp-kw-row">
-                <span class="comp-kw-label">Keyword:</span>
-                <select class="kw-select" id="comp-kw-{p_idx}" onchange="renderCompChart({p_idx})">
-                  {comp_kw_options}
-                </select>
-              </div>
-              <div class="chart-container">
-                <canvas id="comp-chart-{p_idx}"></canvas>
-              </div>
-              <div class="chart-legend" id="comp-legend-{p_idx}"></div>
-            </div>
-          </div>
-        """
-
-        # ── Installs comparison row ────────────────────────────────────────
-        installs_comp_cells = f'<td class="kw-cell" style="font-weight:700">Active Installs</td>'
-        installs_comp_cells += f'<td class="pos-cell"><span class="inst-val">{format_installs(our_inst)}</span><br>{inst_trend}</td>'
-        for comp in competitors:
-            c_raw  = data[today].get(comp["slug"], {}) if today else {}
-            c_inst = c_raw.get("_installs")
-            p_c_raw  = data[yesterday].get(comp["slug"], {}) if yesterday else {}
-            p_c_inst = p_c_raw.get("_installs")
-            cell_cls = ""
-            if isinstance(our_inst, int) and isinstance(c_inst, int):
-                cell_cls = "comp-win" if our_inst > c_inst else "comp-lose"
-            installs_comp_cells += f'<td class="comp-cell {cell_cls}" style="font-weight:600">{format_installs(c_inst)}</td>'
-
-        # ── Competitor comparison table ────────────────────────────────────
-        comp_col_headers = "".join(f'<th>{c["name"]}</th>' for c in competitors)
-
-        comp_rows = f'<tr style="background:#f0f9ff">{installs_comp_cells}<td></td></tr>'
-        for kw in sorted_kws:
-            our = our_kws.get(kw)
-            if not isinstance(our, int):
-                continue
-            row_parts = f'<td class="kw-cell">{kw}</td>'
-            row_parts += f'<td class="pos-cell"><span class="pos-num">#{our}</span></td>'
-            overall = "neutral"
-            for comp in competitors:
-                c_kws = keyword_positions(data[today].get(comp["slug"], {})) if today else {}
-                c_pos = c_kws.get(kw)
-                if not isinstance(c_pos, int):
-                    row_parts += '<td class="comp-cell comp-none">—</td>'
-                elif our < c_pos:
-                    row_parts += f'<td class="comp-cell comp-win">#{c_pos} <span class="badge-win">▲{c_pos-our}</span></td>'
-                    overall = "win"
-                elif our > c_pos:
-                    row_parts += f'<td class="comp-cell comp-lose">#{c_pos} <span class="badge-lose">▼{our-c_pos}</span></td>'
-                    if overall != "win":
-                        overall = "lose"
-                else:
-                    row_parts += f'<td class="comp-cell comp-tie">#{c_pos} <span class="badge-tie">tie</span></td>'
-
-            badge = (
-                '<span class="badge badge-green">Winning</span>' if overall == "win" else
-                '<span class="badge badge-red">Behind</span>'    if overall == "lose" else
-                '<span class="badge badge-gray">Neutral</span>'
-            )
-            comp_rows += f'<tr>{row_parts}<td>{badge}</td></tr>'
-
-        # ── Full keyword table rows ────────────────────────────────────────
-        comp_headers_full = "".join(f'<th>{c["name"]}</th>' for c in competitors)
-        hist_headers      = "".join(f'<th class="hist-header">{d[5:]}</th>' for d in dates[-7:])
+        # ── Keyword position history table ─────────────────────────────────
+        hist_headers = "".join(f'<th class="hist-header">{d[5:]}</th>' for d in dates[-7:])
 
         kw_rows = ""
         for kw in sorted_kws:
-            our  = our_kws.get(kw)
-            prev = keyword_positions(prev_raw).get(kw) if yesterday else None
-
+            our = our_kws.get(kw)
             if not isinstance(our, int):
-                our_cell   = '<span class="pos-none">Not in top 100</span>'
-                row_class  = "row-none"
-                trend_html = '<span class="trend-none">—</span>'
+                our_cell  = '<span class="pos-none">Not in top 100</span>'
+                row_class = "row-none"
             else:
-                our_cell = f'<span class="pos-num">#{our}</span>'
-                if prev is None:
-                    trend_html = '<span class="trend-new">New</span>'; row_class = "row-new"
-                elif our < prev:
-                    trend_html = f'<span class="trend-up">↑ +{prev-our} <small>(was #{prev})</small></span>'; row_class = "row-up"
-                elif our > prev:
-                    trend_html = f'<span class="trend-down">↓ −{our-prev} <small>(was #{prev})</small></span>'; row_class = "row-down"
-                else:
-                    trend_html = '<span class="trend-stable">→</span>'; row_class = "row-stable"
-
-            comp_cells = ""
-            for comp in competitors:
-                c_kws = keyword_positions(data[today].get(comp["slug"], {})) if today else {}
-                c_pos = c_kws.get(kw)
-                if not isinstance(c_pos, int):
-                    comp_cells += '<td class="comp-cell comp-none">—</td>'
-                elif not isinstance(our, int):
-                    comp_cells += f'<td class="comp-cell">#{c_pos}</td>'
-                elif our < c_pos:
-                    comp_cells += f'<td class="comp-cell comp-win">#{c_pos} <span class="badge-win">▲{c_pos-our}</span></td>'
-                elif our > c_pos:
-                    comp_cells += f'<td class="comp-cell comp-lose">#{c_pos} <span class="badge-lose">▼{our-c_pos}</span></td>'
-                else:
-                    comp_cells += f'<td class="comp-cell comp-tie">#{c_pos} <span class="badge-tie">tie</span></td>'
+                our_cell  = f'<span class="pos-num">#{our}</span>'
+                row_class = ""
 
             hist_cells = ""
             for date in dates[-7:]:
@@ -448,394 +457,143 @@ def generate_dashboard(data, config):
                 else:
                     hist_cells += '<td class="hist-cell hist-none">—</td>'
 
-            lw_pos = lw_kws.get(kw)
-            if not isinstance(our, int) or not isinstance(lw_pos, int):
-                wow_kw_html = '<span class="trend-none">—</span>'
-            elif our < lw_pos:
-                wow_kw_html = f'<span class="trend-up">↑ +{lw_pos - our} <small>(was #{lw_pos})</small></span>'
-            elif our > lw_pos:
-                wow_kw_html = f'<span class="trend-down">↓ −{our - lw_pos} <small>(was #{lw_pos})</small></span>'
-            else:
-                wow_kw_html = '<span class="trend-stable">→</span>'
-
             kw_rows += f"""
             <tr class="{row_class}">
               <td class="kw-cell">{kw}</td>
               <td class="pos-cell">{our_cell}</td>
-              {comp_cells}
-              <td class="trend-cell">{trend_html}</td>
-              <td class="trend-cell">{wow_kw_html}</td>
               {hist_cells}
             </tr>"""
 
+        # ── Competitor positions table ─────────────────────────────────────
+        comp_col_headers = "".join(
+            f'<th colspan="2" style="text-align:center;border-left:2px solid #e2e8f0">{c["name"]}</th>'
+            for c in competitors
+        )
+        comp_subheaders = "".join(
+            '<th style="text-align:center;border-left:2px solid #e2e8f0;font-size:.65rem">Current</th>'
+            '<th style="text-align:center;font-size:.65rem">vs Last Week</th>'
+            for _ in competitors
+        )
+
+        comp_rows = ""
+        for kw in sorted_kws:
+            row_parts = f'<td class="kw-cell">{kw}</td>'
+            for comp in competitors:
+                c_kws_today = keyword_positions(data[today].get(comp["slug"], {})) if today else {}
+                c_kws_lw    = keyword_positions(data[last_week_date].get(comp["slug"], {})) if last_week_date else {}
+                c_pos = c_kws_today.get(kw)
+                c_lw  = c_kws_lw.get(kw)
+                border = 'style="border-left:2px solid #e2e8f0"'
+                if not isinstance(c_pos, int):
+                    row_parts += f'<td class="comp-cell comp-none" {border}>—</td><td class="comp-cell comp-none">—</td>'
+                else:
+                    if isinstance(c_lw, int):
+                        d = c_lw - c_pos
+                        if d > 0:
+                            wow_html = f'<span style="color:#16a34a;font-size:.75rem">▲ +{d}</span>'
+                        elif d < 0:
+                            wow_html = f'<span style="color:#dc2626;font-size:.75rem">▼ {abs(d)}</span>'
+                        else:
+                            wow_html = '<span style="color:#94a3b8;font-size:.75rem">→</span>'
+                    else:
+                        wow_html = '<span style="color:#94a3b8;font-size:.75rem">—</span>'
+                    row_parts += f'<td class="comp-cell" {border}>#{c_pos}</td><td class="comp-cell">{wow_html}</td>'
+            comp_rows += f'<tr>{row_parts}</tr>'
+
         # ── Assemble tab ───────────────────────────────────────────────────
         active_cls = "active" if p_idx == 0 else ""
-
         tabs_html += f'<button class="tab {active_cls}" onclick="showTab({p_idx}, this)">{p_name}</button>'
 
-        wp_url = f"https://wordpress.org/plugins/{p_slug}/"
         content_html += f"""
         <div id="tab-{p_idx}" class="tab-content {active_cls}">
 
-          <div style="margin-bottom:12px">
-            <a href="{wp_url}" target="_blank" rel="noopener" style="font-size:13px;color:#2563eb;text-decoration:none">&#127760; View on WordPress.org &rarr;</a>
-          </div>
-
-          <!-- Stats -->
+          <!-- Stats row -->
           <div class="stats">
             <div class="card c-blue">
               <div class="value">{format_installs(our_inst)}</div>
-              <div class="label">Active Installs</div>
+              <div class="label">Active Installations</div>
               <div style="margin-top:4px;min-height:16px">{inst_trend}</div>
             </div>
-            <div class="card">
-              <div class="value">{len(ranking)}/{len(keywords)}</div>
-              <div class="label">Ranking</div>
-              <div style="margin-top:4px;min-height:16px">{wow_ranking_html}</div>
+            <a href="{wp_reviews_url}" target="_blank" rel="noopener" class="card card-link">
+              <div class="value">{reviews_display}</div>
+              <div class="label">Reviews</div>
+              <div style="margin-top:6px;font-size:.9rem;color:#f59e0b;font-weight:700">★ {rating_display}</div>
+            </a>
+            <div class="card card-clickable c-green" onclick="togglePanel('panel-top10-{p_idx}')">
+              <div class="value">{len(top10_kws)}</div>
+              <div class="label">Keywords in Top 10 ↗</div>
+              <div style="margin-top:4px;min-height:16px">{top10_wow}</div>
             </div>
-            <div class="card c-green">
-              <div class="value">{top10}</div>
-              <div class="label">In Top 10</div>
-              <div style="margin-top:4px;min-height:16px">{wow_top10_html}</div>
-            </div>
-            <div class="card">
-              <div class="value">{top30}</div>
-              <div class="label">In Top 30</div>
-              <div style="margin-top:4px;min-height:16px">{wow_top30_html}</div>
-            </div>
-            <div class="card c-green">
-              <div class="value">{beating}</div>
-              <div class="label">Beating Competitors</div>
-            </div>
-            <div class="card c-red">
-              <div class="value">{losing}</div>
-              <div class="label">Behind Competitors</div>
+            <div class="card card-clickable" onclick="togglePanel('panel-pos1120-{p_idx}')">
+              <div class="value">{len(pos11_20_kws)}</div>
+              <div class="label">Keywords #11–20 ↗</div>
+              <div style="margin-top:4px;min-height:16px">{pos11_20_wow}</div>
             </div>
           </div>
 
-          {chart_section}
+          <!-- Top 10 expandable panel -->
+          <div id="panel-top10-{p_idx}" class="expand-panel" style="display:none">
+            <div class="table-title">Keywords Ranking in Top 10</div>
+            {top10_panel_body}
+          </div>
 
-          <!-- Competitor Comparison -->
-          <div class="section-title">Competitor Comparison</div>
+          <!-- #11–20 expandable panel -->
+          <div id="panel-pos1120-{p_idx}" class="expand-panel" style="display:none">
+            <div class="table-title">Keywords Ranking #11–20</div>
+            {pos11_20_panel_body}
+          </div>
+
+          <!-- WoW highlight box -->
+          <div class="section-title">Week-on-Week Changes</div>
+          {wow_box}
+
+          <!-- Keyword position history -->
+          <div class="section-title">Keyword Position History</div>
           <div class="table-wrap" style="margin-bottom:28px">
             <div class="table-title">
-              <span>Head-to-head position and active installs per keyword</span>
+              <span>Daily positions for all tracked keywords</span>
               <div class="legend">
-                <span><span class="legend-dot" style="background:#16a34a"></span>Winning</span>
-                <span><span class="legend-dot" style="background:#dc2626"></span>Behind</span>
+                <span><span class="legend-dot" style="background:#16a34a"></span>Top 10</span>
+                <span><span class="legend-dot" style="background:#2563eb"></span>Top 30</span>
               </div>
             </div>
             <table>
               <thead><tr>
-                <th>Keyword</th><th>Your Position</th>{comp_col_headers}<th>Status</th>
-              </tr></thead>
-              <tbody>{comp_rows}</tbody>
-            </table>
-          </div>
-
-          <!-- Full keyword history -->
-          <div class="section-title">All Keywords — Position History</div>
-          <div class="table-wrap">
-            <div class="table-title">
-              <span>Daily positions · sorted by current rank</span>
-              <div class="legend">
-                <span><span class="legend-dot" style="background:#16a34a"></span>Improved</span>
-                <span><span class="legend-dot" style="background:#dc2626"></span>Declined</span>
-                <span><span class="legend-dot" style="background:#7c3aed"></span>New</span>
-              </div>
-            </div>
-            <table>
-              <thead><tr>
-                <th>Keyword</th><th>Your Position</th>{comp_headers_full}
-                <th>Change vs Yesterday</th><th>vs Last Week</th>{hist_headers}
+                <th>Keyword</th><th>Current</th>{hist_headers}
               </tr></thead>
               <tbody>{kw_rows}</tbody>
             </table>
           </div>
 
+          <!-- Competitor keyword positions -->
+          <div class="section-title">Competitor Keyword Positions</div>
+          <div class="table-wrap">
+            <div class="table-title">
+              <span>Current positions and week-on-week change per keyword</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th rowspan="2" style="vertical-align:bottom">Keyword</th>
+                  {comp_col_headers}
+                </tr>
+                <tr>{comp_subheaders}</tr>
+              </thead>
+              <tbody>{comp_rows}</tbody>
+            </table>
+          </div>
+
         </div>"""
 
-    last_updated    = (datetime.utcnow() + timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d %H:%M IST")
-    plugin_count    = len(plugins)
-    chart_data_json = json.dumps(all_chart_data)
-
-    chart_css = """
-    .chart-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 20px 24px; margin-bottom: 28px; }
-    .chart-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
-    .chart-filter { display: flex; gap: 4px; background: #f1f5f9; border-radius: 8px; padding: 4px; }
-    .filter-btn { background: transparent; border: none; padding: 5px 14px; font-size: .78rem; font-weight: 500; color: #64748b; border-radius: 5px; cursor: pointer; transition: all .15s; }
-    .filter-btn:hover { color: #1e293b; }
-    .filter-btn.active { background: #fff; color: #2563eb; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-    .chart-title { font-size: .82rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
-    .chart-subtitle { font-size: .72rem; color: #94a3b8; margin-bottom: 12px; }
-    .chart-container { width: 100%; overflow: hidden; }
-    .chart-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; }
-    .legend-item { display: flex; align-items: center; font-size: .72rem; color: #475569; gap: 5px; }
-    .legend-swatch { display: inline-block; width: 12px; height: 3px; border-radius: 2px; flex-shrink: 0; }
-    .comp-kw-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
-    .comp-kw-label { font-size: .78rem; color: #64748b; }
-    .kw-select { border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 10px; font-size: .78rem; color: #475569; background: #fff; cursor: pointer; outline: none; }
-    .kw-select:focus { border-color: #2563eb; }
-    #chart-tooltip { position: fixed; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; box-shadow: 0 4px 12px rgba(0,0,0,.12); pointer-events: none; display: none; z-index: 1000; min-width: 160px; max-width: 240px; }
-    """
-
-    chart_js = """
-<script type="application/json" id="chart-data">""" + chart_data_json + """</script>
-<div id="chart-tooltip"></div>
-<script>
-const CHART_DATA = JSON.parse(document.getElementById('chart-data').textContent);
-const COLORS = ['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#0284c7','#9333ea','#0d9488'];
-const tabFilters = {};
-const chartState = {};
-
-function getISOWeek(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00Z');
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - day);
-  const ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return d.getUTCFullYear() + '-W' + String(Math.ceil(((d - ys) / 86400000 + 1) / 7)).padStart(2, '0');
-}
-
-function filterDates(dates, mode) {
-  if (!dates || !dates.length) return [];
-  if (mode === 'daily') return dates;
-  const last = {};
-  for (const d of dates) {
-    const key = mode === 'weekly' ? getISOWeek(d) : d.substring(0, 7);
-    last[key] = d;
-  }
-  return Object.values(last).sort();
-}
-
-function drawChart(canvasId, series, labels) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const wrap = canvas.parentElement;
-  const dpr  = window.devicePixelRatio || 1;
-  const W    = wrap.clientWidth || 700;
-  const H    = 300;
-  canvas.width  = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, W, H);
-
-  const pad = { top: 20, right: 20, bottom: 44, left: 50 };
-  const plotW = W - pad.left - pad.right;
-  const plotH = H - pad.top - pad.bottom;
-
-  const allVals = series.flatMap(s => s.values.filter(v => v != null));
-  if (!allVals.length) {
-    ctx.fillStyle = '#94a3b8'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('No data yet', W / 2, H / 2); return;
-  }
-
-  const dataMin = Math.max(1, Math.min(...allVals));
-  const dataMax = Math.max(...allVals);
-  const spread  = Math.max(dataMax - dataMin, 1);
-  const yMin    = Math.max(1, dataMin - Math.ceil(spread * 0.08));
-  const yMax    = dataMax + Math.ceil(spread * 0.08);
-  const yRange  = yMax - yMin || 1;
-
-  const toX = i => labels.length > 1 ? pad.left + (i / (labels.length - 1)) * plotW : pad.left + plotW / 2;
-  const toY = v => pad.top + ((v - yMin) / yRange) * plotH;
-
-  chartState[canvasId] = { series, labels, pad, W, H, plotW, plotH, toX, toY, yMin, yMax, yRange };
-
-  // Grid
-  ctx.lineWidth = 1;
-  const nGrid = 5;
-  for (let i = 0; i <= nGrid; i++) {
-    const val = yMin + (yRange * i / nGrid);
-    const y   = toY(val);
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
-    ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText('#' + Math.round(val), pad.left - 6, y + 3);
-  }
-
-  // X labels
-  ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-  const maxLbls = Math.floor(plotW / 56);
-  const step    = Math.max(1, Math.ceil(labels.length / maxLbls));
-  const drawn   = new Set();
-  for (let i = 0; i < labels.length; i += step) {
-    ctx.fillText(labels[i].substring(5), toX(i), H - pad.bottom + 16); drawn.add(i);
-  }
-  const last = labels.length - 1;
-  if (!drawn.has(last)) ctx.fillText(labels[last].substring(5), toX(last), H - pad.bottom + 16);
-
-  // Axes
-  ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH);
-  ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.stroke();
-
-  // Series lines + dots
-  for (const s of series) {
-    ctx.strokeStyle = s.color; ctx.lineWidth = s.lineWidth || 2; ctx.setLineDash([]);
-    ctx.beginPath();
-    let started = false;
-    for (let i = 0; i < s.values.length; i++) {
-      if (s.values[i] == null) { started = false; continue; }
-      const x = toX(i), y = toY(s.values[i]);
-      started ? ctx.lineTo(x, y) : ctx.moveTo(x, y); started = true;
-    }
-    ctx.stroke();
-    for (let i = 0; i < s.values.length; i++) {
-      if (s.values[i] == null) continue;
-      ctx.fillStyle = s.color; ctx.beginPath();
-      ctx.arc(toX(i), toY(s.values[i]), s.dotR || 3.5, 0, Math.PI * 2); ctx.fill();
-    }
-  }
-}
-
-function buildLegend(id, series) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = series.map(s =>
-    '<span class="legend-item">' +
-    '<span class="legend-swatch" style="background:' + s.color + '"></span>' +
-    s.name + '</span>'
-  ).join('');
-}
-
-function getSlugForTab(idx) { return Object.keys(CHART_DATA)[idx]; }
-
-function getFilteredValues(rawValues, allDates, filteredDates) {
-  const idx = {};
-  allDates.forEach((d, i) => idx[d] = i);
-  return filteredDates.map(d => { const v = rawValues[idx[d]]; return (v == null) ? null : v; });
-}
-
-function renderKwChart(tabIdx) {
-  const slug = getSlugForTab(tabIdx);
-  const d    = CHART_DATA[slug];
-  const mode = tabFilters[tabIdx] || 'daily';
-  const fd   = filterDates(d.dates, mode);
-
-  // Sort keywords by best current position
-  const kws = Object.keys(d.keywords).sort((a, b) => {
-    const av = [...d.keywords[a]].reverse().find(v => v != null) || 9999;
-    const bv = [...d.keywords[b]].reverse().find(v => v != null) || 9999;
-    return av - bv;
-  }).slice(0, 12);
-
-  const series = kws.map((kw, i) => ({
-    name: kw, color: COLORS[i % COLORS.length],
-    values: getFilteredValues(d.keywords[kw], d.dates, fd)
-  }));
-
-  drawChart('kw-chart-' + tabIdx, series, fd);
-  buildLegend('kw-legend-' + tabIdx, series);
-  setupHover('kw-chart-' + tabIdx);
-}
-
-function renderCompChart(tabIdx) {
-  const slug = getSlugForTab(tabIdx);
-  const d    = CHART_DATA[slug];
-  const mode = tabFilters[tabIdx] || 'daily';
-  const fd   = filterDates(d.dates, mode);
-  const sel  = document.getElementById('comp-kw-' + tabIdx);
-  const kw   = sel ? sel.value : Object.keys(d.keywords)[0];
-
-  const series = [{ name: d.our_name, color: COLORS[0], lineWidth: 2.5, dotR: 4,
-    values: getFilteredValues(d.keywords[kw], d.dates, fd) }];
-
-  Object.entries(d.competitors).forEach(([cSlug, kwMap], i) => {
-    series.push({ name: d.comp_names[cSlug], color: COLORS[i + 1],
-      values: getFilteredValues(kwMap[kw] || [], d.dates, fd) });
-  });
-
-  drawChart('comp-chart-' + tabIdx, series, fd);
-  buildLegend('comp-legend-' + tabIdx, series);
-  setupHover('comp-chart-' + tabIdx);
-}
-
-function setupHover(canvasId) {
-  const canvas  = document.getElementById(canvasId);
-  const tooltip = document.getElementById('chart-tooltip');
-  if (!canvas || !tooltip) return;
-  canvas.onmousemove = (e) => {
-    const st = chartState[canvasId];
-    if (!st) return;
-    const rect = canvas.getBoundingClientRect();
-    const mx   = e.clientX - rect.left;
-    let nearIdx = 0, minDist = Infinity;
-    for (let i = 0; i < st.labels.length; i++) {
-      const dist = Math.abs(mx - st.toX(i));
-      if (dist < minDist) { minDist = dist; nearIdx = i; }
-    }
-    if (minDist > 50) { tooltip.style.display = 'none'; return; }
-
-    // Redraw with vertical guide line
-    drawChart(canvasId, st.series, st.labels);
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    ctx.save(); ctx.scale(dpr, dpr);
-    ctx.strokeStyle = 'rgba(100,116,139,.35)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
-    ctx.beginPath();
-    ctx.moveTo(st.toX(nearIdx), st.pad.top);
-    ctx.lineTo(st.toX(nearIdx), st.pad.top + st.plotH);
-    ctx.stroke(); ctx.restore();
-
-    // Tooltip
-    const date = st.labels[nearIdx];
-    let html = '<div style="font-weight:600;margin-bottom:5px;font-size:.75rem;color:#1e293b">' + date + '</div>';
-    for (const s of st.series) {
-      const v   = s.values[nearIdx];
-      const str = v != null ? '#' + v : '—';
-      html += '<div style="display:flex;align-items:center;gap:6px;padding:1px 0;font-size:.73rem">' +
-        '<span style="width:8px;height:8px;border-radius:50%;background:' + s.color + ';display:inline-block;flex-shrink:0"></span>' +
-        '<span style="color:#64748b;flex:1">' + s.name + '</span>' +
-        '<span style="font-weight:600;color:#1e293b">' + str + '</span></div>';
-    }
-    tooltip.innerHTML = html;
-    tooltip.style.display = 'block';
-    const tw = 200, vpW = window.innerWidth;
-    tooltip.style.left = (e.clientX + 16 + tw > vpW ? e.clientX - tw - 12 : e.clientX + 16) + 'px';
-    tooltip.style.top  = (e.clientY - 10) + 'px';
-  };
-  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
-}
-
-function renderCharts(tabIdx) {
-  renderKwChart(tabIdx);
-  renderCompChart(tabIdx);
-}
-
-function setFilter(tabIdx, mode, btn) {
-  tabFilters[tabIdx] = mode;
-  document.getElementById('filter-' + tabIdx).querySelectorAll('.filter-btn')
-    .forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderCharts(tabIdx);
-}
-
-function showTab(idx, btn) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + idx).classList.add('active');
-  btn.classList.add('active');
-  renderCharts(idx);
-}
-
-window.addEventListener('load', () => renderCharts(0));
-window.addEventListener('resize', () => {
-  const active = document.querySelector('.tab-content.active');
-  if (active) renderCharts(parseInt(active.id.split('-')[1]));
-});
-</script>
-"""
+    last_updated = (datetime.utcnow() + timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d %H:%M IST")
+    plugin_count = len(plugins)
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WP Keyword Tracker</title>
+  <title>WP Plugin Keyword Tracker</title>
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -864,16 +622,34 @@ window.addEventListener('resize', () => {
                        letter-spacing: .07em; color: #94a3b8; margin: 28px 0 12px; }}
 
     /* ── Stat cards ── */
-    .stats {{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 28px; }}
+    .stats {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }}
     .card {{ background: #fff; border-radius: 10px; padding: 18px 20px;
-              box-shadow: 0 1px 3px rgba(0,0,0,.08); }}
+              box-shadow: 0 1px 3px rgba(0,0,0,.08); text-decoration: none; color: inherit; display: block; }}
     .card .value {{ font-size: 1.75rem; font-weight: 800; color: #2563eb; line-height: 1; }}
     .card .label {{ font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
                     color: #94a3b8; margin-top: 5px; }}
     .card.c-green .value {{ color: #16a34a; }}
-    .card.c-red   .value {{ color: #dc2626; }}
     .card.c-blue  .value {{ color: #0891b2; }}
-    .inst-val {{ font-size: 1.75rem; font-weight: 800; color: #0891b2; }}
+    .card-clickable {{ cursor: pointer; transition: box-shadow .15s, transform .1s; }}
+    .card-clickable:hover {{ box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-1px); }}
+    .card-link {{ cursor: pointer; transition: box-shadow .15s; }}
+    .card-link:hover {{ box-shadow: 0 4px 12px rgba(0,0,0,.12); }}
+
+    /* ── Expand panels ── */
+    .expand-panel {{ background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+                     margin-bottom: 14px; overflow: hidden; border: 1px solid #e2e8f0; }}
+
+    /* ── WoW box ── */
+    .wow-box {{ display: grid; grid-template-columns: 1fr 1px 1fr;
+                background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+                margin-bottom: 28px; overflow: hidden; border: 1px solid #e2e8f0; }}
+    .wow-col {{ padding: 20px 24px; }}
+    .wow-divider {{ background: #e2e8f0; }}
+    .wow-section-title {{ font-size: .85rem; font-weight: 700; margin-bottom: 12px;
+                           display: flex; align-items: center; gap: 8px; }}
+    .wow-count {{ font-size: 1.5rem; font-weight: 800; line-height: 1; }}
+    .wow-list {{ list-style: none; display: flex; flex-direction: column; gap: 6px; }}
+    .wow-list li {{ font-size: .85rem; font-weight: 500; }}
 
     /* ── Table wrapper ── */
     .table-wrap {{ background: #fff; border-radius: 10px;
@@ -892,38 +668,15 @@ window.addEventListener('resize', () => {
     tr:last-child td {{ border-bottom: none; }}
     tr:hover td {{ background: rgba(0,0,0,.012); }}
 
-    .kw-cell   {{ font-weight: 500; min-width: 200px; }}
-    .pos-cell  {{ font-size: .95rem; font-weight: 700; min-width: 90px; }}
-    .trend-cell {{ min-width: 150px; }}
+    .kw-cell  {{ font-weight: 500; min-width: 200px; }}
+    .pos-cell {{ font-size: .95rem; font-weight: 700; min-width: 90px; }}
     .pos-num  {{ color: #1e293b; }}
     .pos-none {{ font-size: .75rem; color: #cbd5e1; font-weight: 400; }}
 
-    .trend-up     {{ color: #16a34a; font-weight: 600; }}
-    .trend-down   {{ color: #dc2626; font-weight: 600; }}
-    .trend-stable {{ color: #94a3b8; }}
-    .trend-new    {{ color: #7c3aed; font-weight: 600; }}
-    .trend-none   {{ color: #cbd5e1; }}
-    small         {{ font-weight: 400; opacity: .72; }}
+    .row-none {{ opacity: .6; }}
 
-    .row-down td {{ background: #fff5f5; }}
-    .row-up   td {{ background: #f0fdf4; }}
-    .row-new  td {{ background: #faf5ff; }}
-    .row-none    {{ opacity: .6; }}
-
-    .comp-cell  {{ text-align: center; min-width: 120px; font-size: .82rem; }}
-    .comp-none  {{ color: #cbd5e1; }}
-    .comp-win   {{ color: #15803d; background: #f0fdf4; }}
-    .comp-lose  {{ color: #b91c1c; background: #fff5f5; }}
-    .comp-tie   {{ color: #6b7280; }}
-
-    .badge-win  {{ font-size: .65rem; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
-    .badge-lose {{ font-size: .65rem; background: #fee2e2; color: #b91c1c; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
-    .badge-tie  {{ font-size: .65rem; background: #f3f4f6; color: #6b7280; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }}
-
-    .badge       {{ font-size: .7rem; padding: 2px 8px; border-radius: 99px; font-weight: 600; }}
-    .badge-green {{ background: #dcfce7; color: #15803d; }}
-    .badge-red   {{ background: #fee2e2; color: #b91c1c; }}
-    .badge-gray  {{ background: #f3f4f6; color: #6b7280; }}
+    .comp-cell {{ text-align: center; min-width: 70px; font-size: .82rem; }}
+    .comp-none {{ color: #cbd5e1; }}
 
     .hist-header {{ text-align: center; }}
     .hist-cell   {{ text-align: center; color: #64748b; font-size: .75rem; min-width: 52px; }}
@@ -932,11 +685,12 @@ window.addEventListener('resize', () => {
     .hist-none   {{ color: #e2e8f0; }}
 
     @media (max-width: 900px) {{
-      .stats {{ grid-template-columns: repeat(3, 1fr); }}
+      .stats {{ grid-template-columns: repeat(2, 1fr); }}
+      .wow-box {{ grid-template-columns: 1fr; }}
+      .wow-divider {{ height: 1px; width: 100%; }}
       .container {{ padding: 16px; }}
       .tab-bar {{ padding: 0 16px; }}
     }}
-    {chart_css}
   </style>
 </head>
 <body>
@@ -957,7 +711,19 @@ window.addEventListener('resize', () => {
   {content_html}
 </div>
 
-{chart_js}
+<script>
+function togglePanel(id) {{
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}}
+
+function showTab(idx, btn) {{
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + idx).classList.add('active');
+  btn.classList.add('active');
+}}
+</script>
 </body>
 </html>"""
 

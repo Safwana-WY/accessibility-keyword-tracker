@@ -90,15 +90,32 @@ Host github.com
 
 **`tracker.py`** — single-file Python script with four responsibilities:
 1. `run_check()` — loops over all plugins in config, queries `https://api.wordpress.org/plugins/info/1.2/` for each keyword × slug, records 1-indexed positions; also calls `fetch_installs()` per slug
-2. `generate_dashboard()` — writes `index.html` as a self-contained tabbed static page (one tab per plugin, no external dependencies). Each tab includes: stat cards, position trend charts (keyword trends + competitor comparison), competitor comparison table, and full keyword history table. The "Last updated" timestamp in the header is shown in IST (UTC+5:30).
+2. `generate_dashboard()` — writes `index.html` as a self-contained tabbed static page (one tab per plugin, no external dependencies). The "Last updated" timestamp in the header is shown in IST (UTC+5:30).
 3. `send_slack()` — posts a Block Kit message covering all plugins: installs, changes, competitor wins/losses
 4. `send_email()` — optional HTML email alert (disabled by default)
+
+## Dashboard sections
+
+The dashboard (`index.html`) is a self-contained static page with no external JS dependencies. Each tab covers one tracked plugin and contains exactly these sections, in order:
+
+1. **Stats row (4 cards)**
+   - Active Installations — install count with day-on-day delta
+   - Reviews — review count + average star rating (WP.org raw 0–100 divided by 20); clicking links to the plugin's `#reviews` page on WordPress.org
+   - Keywords in Top 10 — count with WoW delta; clicking expands an inline panel listing each keyword, its current position, and its WoW change
+   - Keywords #11–20 — same behaviour as Top 10 card
+
+2. **Week-on-Week Changes box** — two-column highlighted panel: left = improved keywords (with `#old → #new`), right = declined keywords. Requires 7 days of history; shows a placeholder message otherwise.
+
+3. **Keyword Position History table** — one row per tracked keyword, columns: Current position + last 7 daily snapshots. Positions ≤ 10 are green, ≤ 30 are blue. Unranked shown as "–".
+
+4. **Competitor Keyword Positions table** — one row per tracked keyword; each competitor gets two columns (current position + WoW change arrow). Requires `last_week_date` to exist for WoW data.
 
 **`config.json`** — single source of truth for all plugin definitions, keywords, and notification settings. No code changes needed to add plugins or keywords.
 
 **Data flow:**
-- Positions stored in `data/positions.json`: `{ "YYYY-MM-DD": { "slug": { "keyword": position, "_installs": N } } }`
-- Keys starting with `_` are internal metadata (installs); `keyword_positions()` helper strips them when processing rankings
+- Positions stored in `data/positions.json`: `{ "YYYY-MM-DD": { "slug": { "keyword": position, "_installs": N, "_rating": F, "_num_ratings": N } } }`
+- Keys starting with `_` are internal metadata (installs, rating, review count); `keyword_positions()` helper strips them when processing rankings
+- `_rating` is the WP.org raw rating (0–100) divided by 20 to get a 5-star value; `_num_ratings` is the review count
 - `index.html` committed to `main` and served via GitHub Pages — updates every time the cron pushes
 - Changes detected by comparing today vs yesterday per plugin
 - Week-on-week comparison shown on dashboard stat cards (Ranking, Top 10, Top 30) and in the keyword table ("vs Last Week" column); requires 7 days of data to populate
