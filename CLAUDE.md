@@ -98,6 +98,8 @@ Host github.com
 
 The dashboard (`index.html`) is a self-contained static page with no external JS dependencies. Each tab covers one tracked plugin and contains exactly these sections, in order:
 
+0. **Product page link** — "↗ View on WordPress.org" link at the top of each tab, opening `https://wordpress.org/plugins/{slug}/` in a new tab.
+
 1. **Stats row (4 cards)**
    - Active Installations — install count with day-on-day delta
    - Reviews — review count + average star rating (WP.org raw 0–100 divided by 20); clicking links to the plugin's `#reviews` page on WordPress.org
@@ -118,8 +120,7 @@ The dashboard (`index.html`) is a self-contained static page with no external JS
 - `_rating` is the WP.org raw rating (0–100) divided by 20 to get a 5-star value; `_num_ratings` is the review count
 - `index.html` committed to `main` and served via GitHub Pages — updates every time the cron pushes
 - Changes detected by comparing today vs yesterday per plugin
-- Week-on-week comparison shown on dashboard stat cards (Ranking, Top 10, Top 30) and in the keyword table ("vs Last Week" column); requires 7 days of data to populate
-- Position trend charts use canvas-based rendering (no external dependencies); chart data is embedded as JSON in the HTML at generation time. Charts support Daily / Weekly / Monthly filters and show hover tooltips. Keyword chart shows top 12 keywords by current rank; competitor chart has a per-keyword dropdown.
+- Week-on-week comparison shown on stat cards (Top 10, #11–20) and in the WoW Changes box; requires 7 days of data to populate
 
 **Secrets handling:**
 - `secrets.json` (gitignored) holds `slack_webhook_url` and optionally `email_password`
