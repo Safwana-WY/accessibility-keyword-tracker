@@ -504,8 +504,16 @@ def generate_dashboard(data, config):
         active_cls = "active" if p_idx == 0 else ""
         tabs_html += f'<button class="tab {active_cls}" onclick="showTab({p_idx}, this)">{p_name}</button>'
 
+        wp_product_url = f"https://wordpress.org/plugins/{p_slug}/"
         content_html += f"""
         <div id="tab-{p_idx}" class="tab-content {active_cls}">
+
+          <div style="margin-bottom:20px">
+            <a href="{wp_product_url}" target="_blank" rel="noopener"
+               style="font-size:.85rem;color:#6366f1;text-decoration:none;font-weight:600">
+              ↗ View on WordPress.org
+            </a>
+          </div>
 
           <!-- Stats row -->
           <div class="stats">
