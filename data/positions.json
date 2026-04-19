@@ -3934,5 +3934,89 @@
       "_rating": 4.0,
       "_num_ratings": 56
     }
+  },
+  "2026-04-19": {
+    "accessibility-plus": {
+      "accessibility plugin": 7,
+      "wordpress accessibility": 15,
+      "web accessibility": 14,
+      "accessibility checker": 5,
+      "accessibility tool": 7,
+      "wcag plugin": 7,
+      "wcag compliance": 11,
+      "wcag 2.2": null,
+      "ada plugin": 6,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "accessibility plugin": 6,
+      "wordpress accessibility": 3,
+      "web accessibility": 5,
+      "accessibility checker": 2,
+      "accessibility tool": 6,
+      "wcag plugin": 2,
+      "wcag compliance": 2,
+      "ada plugin": 3,
+      "section 508": 1,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "wp-accessibility": {
+      "accessibility plugin": 5,
+      "wordpress accessibility": 5,
+      "web accessibility": null,
+      "accessibility tool": 3,
+      "wcag plugin": 23,
+      "wcag compliance": null,
+      "wcag 2.2": null,
+      "ada compliance": null,
+      "ada plugin": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibe": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-onetap": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "userway-accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    }
   }
 }
