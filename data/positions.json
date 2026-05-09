@@ -9361,5 +9361,140 @@
       "_rating": 4.0,
       "_num_ratings": 57
     }
+  },
+  "2026-05-09": {
+    "accessibility-plus": {
+      "accessibility plugin": 7,
+      "wordpress accessibility": 15,
+      "web accessibility": 14,
+      "accessibility checker": 5,
+      "accessibility tool": 7,
+      "wcag compliance": 11,
+      "ada compliance": 11,
+      "ada plugin": 6,
+      "section 508": 3,
+      "EAA compliance": 2,
+      "EN 301 549": 10,
+      "accessibility statement generator": 5,
+      "accessibility issues wordpress": 15,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "wordpress accessibility": 5,
+      "web accessibility": 5,
+      "accessibility checker": 2,
+      "accessibility tool": 6,
+      "wcag compliance": 2,
+      "ada plugin": 2,
+      "section 508": 1,
+      "EAA compliance": 1,
+      "AODA": 3,
+      "accessibility issues wordpress": 5,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "wp-accessibility": {
+      "wordpress accessibility": 4,
+      "web accessibility": null,
+      "accessibility checker": 4,
+      "accessibility tool": 4,
+      "wcag compliance": null,
+      "wcag 2.2": null,
+      "ada compliance": null,
+      "ada plugin": null,
+      "section 508": null,
+      "EAA compliance": null,
+      "European Accessibility Act": null,
+      "EN 301 549": null,
+      "AODA": null,
+      "accessibility statement": 6,
+      "accessibility issues wordpress": 3,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator": {
+      "missing alt text": 20,
+      "alt text accessibility": 39,
+      "OpenAI alt text": null,
+      "WooCommerce alt text": null,
+      "alt text plugin": 32,
+      "image accessibility": null,
+      "auto generate alt text": 16,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "missing alt text": null,
+      "alt text accessibility": null,
+      "OpenAI alt text": 6,
+      "media library alt text": 21,
+      "WooCommerce alt text": null,
+      "alt text plugin": 15,
+      "image accessibility": null,
+      "auto generate alt text": null,
+      "GPT alt text": 5,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "missing alt text": null,
+      "alt text accessibility": 15,
+      "OpenAI alt text": null,
+      "media library alt text": null,
+      "WooCommerce alt text": 8,
+      "image accessibility": 57,
+      "auto generate alt text": null,
+      "GPT alt text": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "missing alt text": null,
+      "alt text accessibility": 16,
+      "OpenAI alt text": 4,
+      "media library alt text": 22,
+      "WooCommerce alt text": null,
+      "AI image description": 69,
+      "alt text plugin": 16,
+      "image accessibility": 87,
+      "GPT alt text": 4,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-widget": {
+      "accessibility widget": 3,
+      "wordpress accessibility widget": 4,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibe": {
+      "accessibility widget": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-onetap": {
+      "accessibility widget": 1,
+      "wordpress accessibility widget": 1,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "userway-accessibility-widget": {
+      "accessibility widget": 2,
+      "wordpress accessibility widget": 2,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    }
   }
 }
