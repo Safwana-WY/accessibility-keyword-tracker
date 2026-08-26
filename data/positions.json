@@ -42506,5 +42506,147 @@
       "_rating": 4.0,
       "_num_ratings": 57
     }
+  },
+  "2026-08-26": {
+    "accessibility-plus": {
+      "accessibility plugin": 11,
+      "web accessibility": 10,
+      "accessibility checker": 5,
+      "accessibility tool": 8,
+      "wcag plugin": 8,
+      "wcag compliance": 13,
+      "wcag 2.2": null,
+      "ada compliance": 8,
+      "ada plugin": 6,
+      "section 508": 2,
+      "EAA compliance": 3,
+      "European Accessibility Act": 5,
+      "EN 301 549": 24,
+      "AODA": null,
+      "accessibility statement generator": 6,
+      "accessibility statement": 8,
+      "accessibility scan": 8,
+      "accessibility audit": 5,
+      "accessibility remediation": 5,
+      "color contrast plugin": 12,
+      "alt text plugin": null,
+      "screen reader plugin": 37,
+      "keyboard navigation plugin": 26,
+      "focus indicator": 8,
+      "accessibility toolbar": 6,
+      "ARIA plugin": 18,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "web accessibility": 6,
+      "accessibility checker": 2,
+      "accessibility tool": 7,
+      "wcag plugin": 4,
+      "wcag compliance": 3,
+      "wcag 2.2": 2,
+      "ada compliance": 6,
+      "ada plugin": 3,
+      "section 508": 1,
+      "EAA compliance": 2,
+      "European Accessibility Act": 3,
+      "EN 301 549": null,
+      "AODA": 2,
+      "accessibility statement": 4,
+      "accessibility audit": 3,
+      "accessibility remediation": 4,
+      "accessibility issues wordpress": 6,
+      "color contrast plugin": null,
+      "alt text plugin": null,
+      "screen reader plugin": null,
+      "keyboard navigation plugin": null,
+      "skip links": 20,
+      "focus indicator": null,
+      "accessibility toolbar": 5,
+      "a11y": null,
+      "wp accessibility": 5,
+      "ARIA plugin": null,
+      "accessible wordpress": 68,
+      "_installs": 10000,
+      "_rating": 4.9,
+      "_num_ratings": 78
+    },
+    "wp-accessibility": {
+      "accessibility plugin": 4,
+      "wordpress accessibility": 3,
+      "web accessibility": null,
+      "accessibility checker": 4,
+      "accessibility tool": 2,
+      "wcag compliance": null,
+      "wcag 2.2": null,
+      "ada compliance": null,
+      "ada plugin": null,
+      "section 508": null,
+      "EAA compliance": null,
+      "European Accessibility Act": null,
+      "EN 301 549": null,
+      "AODA": null,
+      "accessibility statement": 5,
+      "accessibility audit": null,
+      "accessibility remediation": 3,
+      "accessibility issues wordpress": 2,
+      "color contrast plugin": 10,
+      "alt text plugin": 39,
+      "keyboard navigation plugin": null,
+      "skip links": 13,
+      "focus indicator": 17,
+      "accessibility toolbar": 3,
+      "a11y": 3,
+      "wp accessibility": 1,
+      "ARIA plugin": null,
+      "accessible wordpress": null,
+      "_installs": 60000,
+      "_rating": 4.8,
+      "_num_ratings": 68
+    },
+    "alt-text-generator": {
+      "alt text generator": 12,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "alt text generator": 1,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "alt text generator": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibe": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-onetap": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "userway-accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    }
   }
 }
