@@ -50834,5 +50834,100 @@
       "_rating": 4.0,
       "_num_ratings": 57
     }
+  },
+  "2026-10-02": {
+    "accessibility-plus": {
+      "wordpress accessibility": 17,
+      "accessibility checker": 5,
+      "accessibility tool": 6,
+      "wcag plugin": 8,
+      "wcag compliance": 12,
+      "wcag 2.2": null,
+      "ada compliance": 9,
+      "focus indicator": 8,
+      "a11y": 10,
+      "wp accessibility": 18,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "accessibility plugin": 6,
+      "wordpress accessibility": 7,
+      "web accessibility": 7,
+      "accessibility checker": 2,
+      "accessibility tool": 8,
+      "wcag plugin": 4,
+      "wcag compliance": 2,
+      "wcag 2.2": 2,
+      "ada compliance": 7,
+      "skip links": 24,
+      "focus indicator": null,
+      "accessibility toolbar": 5,
+      "a11y": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "wp-accessibility": {
+      "accessibility plugin": 2,
+      "wordpress accessibility": 2,
+      "web accessibility": null,
+      "accessibility checker": 4,
+      "accessibility tool": 2,
+      "wcag plugin": 19,
+      "wcag compliance": null,
+      "wcag 2.2": null,
+      "skip links": 12,
+      "focus indicator": 20,
+      "accessibility toolbar": 3,
+      "a11y": 2,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "alt text SEO": 4,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "alt text SEO": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "alt text SEO": 14,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibe": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-onetap": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "userway-accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    }
   }
 }
