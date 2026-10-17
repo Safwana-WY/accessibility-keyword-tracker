@@ -54193,5 +54193,71 @@
       "_rating": 4.0,
       "_num_ratings": 57
     }
+  },
+  "2026-10-17": {
+    "accessibility-plus": {
+      "accessibility plugin": 15,
+      "web accessibility": 12,
+      "accessibility checker": 5,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "accessibility plugin": 6,
+      "wordpress accessibility": 6,
+      "web accessibility": 7,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "wp-accessibility": {
+      "accessibility plugin": 1,
+      "wordpress accessibility": 1,
+      "web accessibility": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibe": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-onetap": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "userway-accessibility-widget": {
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    }
   }
 }
