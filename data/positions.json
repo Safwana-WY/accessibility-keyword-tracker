@@ -60015,5 +60015,120 @@
       "_rating": 4.0,
       "_num_ratings": 57
     }
+  },
+  "2026-11-07": {
+    "accessibility-plus": {
+      "EN 301 549": 51,
+      "AODA": null,
+      "accessibility statement generator": 6,
+      "accessibility statement": 7,
+      "accessibility scan": 11,
+      "accessibility remediation": 6,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "EN 301 549": null,
+      "AODA": 2,
+      "accessibility statement generator": 5,
+      "accessibility statement": 5,
+      "accessibility remediation": 3,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "wp-accessibility": {
+      "EN 301 549": null,
+      "AODA": null,
+      "accessibility statement": 1,
+      "accessibility audit": null,
+      "accessibility remediation": 1,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator": {
+      "missing alt text": 28,
+      "alt text accessibility": 43,
+      "OpenAI alt text": null,
+      "WooCommerce alt text": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "missing alt text": 4,
+      "alt text accessibility": 4,
+      "OpenAI alt text": 3,
+      "media library alt text": 7,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "missing alt text": null,
+      "alt text accessibility": null,
+      "OpenAI alt text": null,
+      "media library alt text": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "missing alt text": null,
+      "alt text accessibility": 12,
+      "OpenAI alt text": 4,
+      "media library alt text": 15,
+      "_installs": 700,
+      "_rating": 4.9,
+      "_num_ratings": 7
+    },
+    "accessibility-widget": {
+      "accessibility widget": 2,
+      "ada compliance": 8,
+      "wcag compliance": 5,
+      "accessibe alternative": null,
+      "userway alternative": null,
+      "WCAG 2.1": 5,
+      "EN 301 549": 48,
+      "_installs": 20000,
+      "_rating": 4.8,
+      "_num_ratings": 37
+    },
+    "accessibe": {
+      "ada compliance": 11,
+      "wcag compliance": 32,
+      "accessibe alternative": null,
+      "userway alternative": null,
+      "WCAG 2.1": null,
+      "EN 301 549": null,
+      "_installs": 10000,
+      "_rating": 4.1,
+      "_num_ratings": 32
+    },
+    "accessibility-onetap": {
+      "ada compliance": 18,
+      "wcag compliance": 26,
+      "accessibe alternative": null,
+      "userway alternative": null,
+      "one click accessibility": 2,
+      "WCAG 2.1": null,
+      "EN 301 549": null,
+      "_installs": 60000,
+      "_rating": 4.9,
+      "_num_ratings": 80
+    },
+    "userway-accessibility-widget": {
+      "ada compliance": 14,
+      "accessibility statement": null,
+      "accessibe alternative": null,
+      "userway alternative": null,
+      "one click accessibility": null,
+      "WCAG 2.1": 7,
+      "_installs": 80000,
+      "_rating": 4.0,
+      "_num_ratings": 57
+    }
   }
 }
