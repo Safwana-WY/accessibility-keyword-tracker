@@ -62315,5 +62315,95 @@
       "_rating": 4.0,
       "_num_ratings": 57
     }
+  },
+  "2026-11-15": {
+    "accessibility-plus": {
+      "screen reader plugin": 35,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "alt text plugin": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "wp-accessibility": {
+      "alt text plugin": 34,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator": {
+      "AI alt text": 34,
+      "generate alt text": 22,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "AI alt text": 3,
+      "generate alt text": 3,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "AI alt text": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "AI alt text": 18,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-widget": {
+      "accessibility plugin": 7,
+      "ada compliance": 8,
+      "wcag compliance": 7,
+      "accessibility statement": 5,
+      "accessibe alternative": null,
+      "one click accessibility": 7,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibe": {
+      "accessibility toolbar": null,
+      "ada compliance": 11,
+      "wcag compliance": 35,
+      "accessibe alternative": null,
+      "userway alternative": null,
+      "one click accessibility": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-onetap": {
+      "accessibility toolbar": 1,
+      "ada compliance": 18,
+      "accessibe alternative": null,
+      "userway alternative": null,
+      "one click accessibility": 2,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "userway-accessibility-widget": {
+      "accessibility toolbar": null,
+      "accessibility plugin": 19,
+      "wcag compliance": 20,
+      "screen reader": null,
+      "accessibility statement": null,
+      "accessibe alternative": null,
+      "userway alternative": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    }
   }
 }
