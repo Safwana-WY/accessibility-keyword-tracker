@@ -64164,5 +64164,138 @@
       "_rating": 4.0,
       "_num_ratings": 57
     }
+  },
+  "2026-11-21": {
+    "accessibility-plus": {
+      "wcag compliance": 10,
+      "European Accessibility Act": 5,
+      "EN 301 549": 55,
+      "AODA": null,
+      "accessibility statement generator": 6,
+      "accessibility statement": 6,
+      "accessibility scan": 9,
+      "accessibility audit": 7,
+      "accessibility remediation": 5,
+      "accessibility issues wordpress": 17,
+      "color contrast plugin": 13,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-checker": {
+      "wcag compliance": 2,
+      "European Accessibility Act": 2,
+      "EN 301 549": null,
+      "AODA": 2,
+      "accessibility statement generator": 4,
+      "accessibility scan": 2,
+      "accessibility audit": 5,
+      "accessibility remediation": 2,
+      "color contrast plugin": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "wp-accessibility": {
+      "wcag plugin": 18,
+      "European Accessibility Act": null,
+      "AODA": null,
+      "accessibility statement generator": null,
+      "accessibility statement": 1,
+      "accessibility scan": null,
+      "accessibility audit": null,
+      "accessibility remediation": 1,
+      "accessibility issues wordpress": 1,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator": {
+      "bulk alt text": 28,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-alt-text-generator": {
+      "generate alt text": 2,
+      "automatic alt text": 3,
+      "bulk alt text": 4,
+      "bulk alt text generator": 1,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "ai-image-alt-text-generator-for-wp": {
+      "generate alt text": null,
+      "auto alt text": null,
+      "automatic alt text": null,
+      "bulk alt text": null,
+      "computer vision wordpress": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "alt-text-generator-gpt-vision": {
+      "generate alt text": 10,
+      "auto alt text": null,
+      "automatic alt text": 9,
+      "bulk alt text": 12,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-widget": {
+      "color contrast tool": 8,
+      "font size accessibility": 4,
+      "keyboard navigation": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibe": {
+      "accessibility plugin": 35,
+      "ada compliance": 11,
+      "wcag compliance": 33,
+      "EAA compliance": 12,
+      "web accessibility": 6,
+      "wp accessibility": null,
+      "color contrast tool": null,
+      "font size accessibility": 23,
+      "keyboard navigation": null,
+      "screen reader": 70,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "accessibility-onetap": {
+      "wcag widget": 8,
+      "accessibility plugin": 2,
+      "ada compliance": null,
+      "wcag compliance": null,
+      "EAA compliance": null,
+      "section 508": null,
+      "web accessibility": 2,
+      "wp accessibility": 2,
+      "color contrast tool": 4,
+      "font size accessibility": 1,
+      "keyboard navigation": 16,
+      "screen reader": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    },
+    "userway-accessibility-widget": {
+      "wcag compliance": 19,
+      "EAA compliance": 6,
+      "section 508": 7,
+      "web accessibility": 13,
+      "wp accessibility": 27,
+      "color contrast tool": null,
+      "font size accessibility": null,
+      "screen reader": null,
+      "_installs": null,
+      "_rating": null,
+      "_num_ratings": null
+    }
   }
 }
